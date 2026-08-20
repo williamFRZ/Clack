@@ -20,10 +20,10 @@ MFRC522 rfid(SS_PIN, RST_PIN);
 #define PINO_SERVO 4
 Servo travaServo;
 
-// Ângulos da trava mecânica (Invertidos para bater com o físico)
+// Ângulos da trava mecânica
 const int ANGULO_TRANCADO = 180;   // Porta trancada
-const int ANGULO_ABERTO   = 0;     // Porta destrancada
-int estadoAtualTrava = -1;         // Guarda o último estado aplicado
+const int ANGULO_ABERTO   = 0;  // Porta destrancada
+int estadoAtualTrava = -1;       // Guarda o último estado aplicado
 
 // 4. Variáveis de Controle
 const int ID_SALA = 1; // Sala 204
@@ -33,6 +33,26 @@ const long intervaloPolling = 2000;
 // Variáveis para controle da reconexão Wi-Fi sem travar o código
 unsigned long ultimaTentativaConexao = 0;
 const long intervaloTentativaConexao = 10000; // Tenta reconectar a cada 10 segundos se cair
+
+void setup() {
+  Serial.begin(115200);
+
+  // Inicializa o Servo Motor SG90
+  ESP32PWM::allocateTimer(0);
+  travaServo.setPeriodHertz(50); // Frequência padrão de 50Hz para SG90
+  travaServo.attach(PINO_SERVO, 500, 2400); // Faixa de pulso do SG90
+  travaServo.write(ANGULO_TRANCADO);
+  estadoAtualTrava = ANGULO_TRANCADO;
+
+  // Conexão Wi-Fi Inicial
+  conectarWiFi();
+
+  // Inicializa RFID
+  SPI.begin();
+  rfid.PCD_Init();
+  
+  Serial.println("[Sistema] RFID e Servo prontos. Clack online!");
+}
 
 void conectarWiFi() {
   Serial.print("Conectando ao Wi-Fi");
@@ -55,28 +75,6 @@ void conectarWiFi() {
   }
 }
 
-void setup() {
-  Serial.begin(115200);
-
-  // Inicialização segura do Servo no setup para posição inicial
-  ESP32PWM::allocateTimer(0);
-  travaServo.setPeriodHertz(50); 
-  travaServo.attach(PINO_SERVO, 500, 2400); 
-  travaServo.write(ANGULO_TRANCADO);
-  delay(300);
-  travaServo.detach(); // Alivia o motor logo na inicialização
-  estadoAtualTrava = ANGULO_TRANCADO;
-
-  // Conexão Wi-Fi Inicial
-  conectarWiFi();
-
-  // Inicializa RFID
-  SPI.begin();
-  rfid.PCD_Init();
-  
-  Serial.println("[Sistema] RFID e Servo prontos. Clack online!");
-}
-
 void loop() {
   unsigned long tempoAtual = millis();
 
@@ -88,10 +86,11 @@ void loop() {
       WiFi.disconnect();
       WiFi.begin(ssid, password);
     }
-    return; // Pula o loop se estiver sem internet para evitar travamentos de HTTP
+    // Se estiver sem Wi-Fi, pula o restante do loop para evitar erros de HTTP
+    return; 
   }
 
-  // TAREFA 1: Polling do Servidor para Movimentar o Servo com Alívio (Detach)
+  // TAREFA 1: Polling do Servidor para Movimentar o Servo
   if (tempoAtual - tempoAnterior >= intervaloPolling) {
     tempoAnterior = tempoAtual;
 
@@ -106,23 +105,15 @@ void loop() {
 
       if (payload.indexOf("abrir") >= 0) {
         if (estadoAtualTrava != ANGULO_ABERTO) {
-          travaServo.attach(PINO_SERVO, 500, 2400); // Liga o sinal PWM do motor
           travaServo.write(ANGULO_ABERTO);
-          delay(350); // Tempo para o motor girar até o fim do curso
-          travaServo.detach(); // Desliga o sinal PWM para aliviar a corrente da ESP32
-          
           estadoAtualTrava = ANGULO_ABERTO;
-          Serial.println("[Trava] Girando para ABERTO (0 graus) e aliviado.");
+          Serial.println("[Trava] Girando para ABERTO (180 graus)");
         }
       } else {
         if (estadoAtualTrava != ANGULO_TRANCADO) {
-          travaServo.attach(PINO_SERVO, 500, 2400); // Liga o sinal PWM do motor
           travaServo.write(ANGULO_TRANCADO);
-          delay(350); // Tempo para o motor girar até o fim do curso
-          travaServo.detach(); // Desliga o sinal PWM para aliviar a corrente da ESP32
-          
           estadoAtualTrava = ANGULO_TRANCADO;
-          Serial.println("[Trava] Girando para FECHADO (180 graus) e aliviado.");
+          Serial.println("[Trava] Girando para FECHADO (0 graus)");
         }
       }
     } else {
@@ -148,13 +139,13 @@ void loop() {
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
     String dadosPost = "acao=ler_tag&sala=" + String(ID_SALA) + "&uid=" + uidCard;
-    int postCode = http.POST(dadosPost);
+    int httpCode = http.POST(dadosPost);
 
-    if (postCode > 0) {
+    if (httpCode > 0) {
       String resposta = http.getString();
       Serial.println("[Servidor] " + resposta);
     } else {
-      Serial.printf("[HTTP POST] Falha: %d\n", postCode);
+      Serial.printf("[HTTP POST] Falha: %d\n", httpCode);
     }
     http.end();
 
