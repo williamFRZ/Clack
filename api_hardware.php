@@ -23,8 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['acao']) && $_GET['acao']
 
     if ($resultado->num_rows > 0) {
         $sala = $resultado->fetch_assoc();
-        // Se a sala estiver "em_uso", manda a palavra "abrir" para a ESP32 girar o servo a 90º
-        if ($sala['status'] == 'em_uso') {
+        // Se a sala estiver "em_uso" OU "manutencao", a tranca deve estar aberta
+        if ($sala['status'] == 'em_uso' || $sala['status'] == 'manutencao') {
             echo "abrir";
         } else {
             echo "fechar";
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
     $sala_id = intval($_POST['sala']);
     $uid = $_POST['uid'];
 
-    // 1. Verifica se a tag existe e está autorizada na tabela 'usuarios'
+    // 1. Verifica se a tag existe e está autorizada
     $sql_user = "SELECT * FROM usuarios WHERE uid_tag = ?";
     $stmt = $conexao->prepare($sql_user);
     $stmt->bind_param("s", $uid);
@@ -56,7 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
 
         if ($usuario['autorizado'] == 1) {
             
-            // 2. Verifica o status atual da sala para fazer o "Toggle" (abrir/fechar)
+            // Verifica se o usuário é da limpeza
+            $eh_limpeza = (stripos($nome_usuario, 'limpeza') !== false);
+
+            // Busca o status atual da sala
             $sql_sala = "SELECT status FROM salas WHERE id = ?";
             $stmt_sala = $conexao->prepare($sql_sala);
             $stmt_sala->bind_param("i", $sala_id);
@@ -64,25 +67,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             $sala_atual = $stmt_sala->get_result()->fetch_assoc();
             $stmt_sala->close();
 
-            if ($sala_atual['status'] == 'disponivel') {
-                // A sala estava vazia/trancada. Vamos abrir e registrar em nome do usuário.
-                $novo_status = 'em_uso';
-                $msg_log = "Acessou o ambiente";
-                
-                $update = "UPDATE salas SET status = 'em_uso', usuario_nome = ? WHERE id = ?";
-                $stmt_up = $conexao->prepare($update);
-                $stmt_up->bind_param("si", $nome_usuario, $sala_id);
-                $stmt_up->execute();
-            } else {
-                // A sala já estava em uso. Vamos liberar/trancar.
-                $novo_status = 'disponivel';
-                $msg_log = "Trancou o ambiente";
-                
-                $update = "UPDATE salas SET status = 'disponivel', usuario_nome = NULL WHERE id = ?";
-                $stmt_up = $conexao->prepare($update);
-                $stmt_up->bind_param("i", $sala_id);
-                $stmt_up->execute();
+            // Lógica para Limpeza
+            if ($eh_limpeza) {
+                if ($sala_atual['status'] == 'manutencao') {
+                    $msg_log = "Finalizou a limpeza / Trancou o ambiente";
+                    $update = "UPDATE salas SET status = 'disponivel', usuario_nome = NULL WHERE id = ?";
+                    $stmt_up = $conexao->prepare($update);
+                    $stmt_up->bind_param("i", $sala_id);
+                } else {
+                    $msg_log = "Iniciou a limpeza (Manutencao)";
+                    $update = "UPDATE salas SET status = 'manutencao', usuario_nome = ? WHERE id = ?";
+                    $stmt_up = $conexao->prepare($update);
+                    $stmt_up->bind_param("si", $nome_usuario, $sala_id);
+                }
+            } 
+            // Lógica para Usuários Comuns (Professores/Alunos)
+            else {
+                if ($sala_atual['status'] == 'disponivel') {
+                    $msg_log = "Acessou o ambiente";
+                    $update = "UPDATE salas SET status = 'em_uso', usuario_nome = ? WHERE id = ?";
+                    $stmt_up = $conexao->prepare($update);
+                    $stmt_up->bind_param("si", $nome_usuario, $sala_id);
+                } else {
+                    $msg_log = "Trancou o ambiente";
+                    $update = "UPDATE salas SET status = 'disponivel', usuario_nome = NULL WHERE id = ?";
+                    $stmt_up = $conexao->prepare($update);
+                    $stmt_up->bind_param("i", $sala_id);
+                }
             }
+
+            $stmt_up->execute();
+            $stmt_up->close();
 
             // 3. Registra o evento de sucesso na tabela de logs
             $log = "INSERT INTO logs_acesso (sala_id, uid_tag, mensagem) VALUES (?, ?, ?)";
@@ -90,9 +105,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             $stmt_log->bind_param("iss", $sala_id, $uid, $msg_log);
             $stmt_log->execute();
 
-            echo json_encode(["status" => "sucesso", "mensagem" => "Responsavel: $nome_usuario!"]);
+            echo json_encode(["status" => "sucesso", "mensagem" => "Responsável: $nome_usuario"]);
         } else {
-            // Tag encontrada, mas bloqueada
+            // Tag bloqueada
             $msg_log = "Acesso Negado (Tag Bloqueada)";
             $log = "INSERT INTO logs_acesso (sala_id, uid_tag, mensagem) VALUES (?, ?, ?)";
             $stmt_log = $conexao->prepare($log);
@@ -102,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             echo json_encode(["status" => "erro", "mensagem" => "Acesso Bloqueado!"]);
         }
     } else {
-        // Tag não cadastrada no sistema
+        // Tag não cadastrada
         $msg_log = "Acesso Negado (Tag Desconhecida)";
         $log = "INSERT INTO logs_acesso (sala_id, uid_tag, mensagem) VALUES (?, ?, ?)";
         $stmt_log = $conexao->prepare($log);

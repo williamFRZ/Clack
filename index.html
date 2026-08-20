@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CLACK - Monitoramento e Controle</title>
+    <title>CLACK</title>
     <style>
         * {
             margin: 0;
@@ -163,7 +163,7 @@
                         if (sala.status === 'em_uso') {
                             statusTexto = 'Em uso por: ' + (sala.usuario_nome ? sala.usuario_nome : 'Desconhecido');
                         } else if (sala.status === 'manutencao') {
-                            statusTexto = 'Interditada';
+                            statusTexto = 'Manutenção por: ' + (sala.usuario_nome ? sala.usuario_nome : 'Limpeza');
                         } else {
                             statusTexto = 'Disponível / Trancado';
                         }
@@ -222,7 +222,6 @@
                         let classeMsg = log.mensagem.includes("Negado") ? "log-negado" : "log-msg";
                         let nomeSala = log.numero_sala ? log.numero_sala : 'Sala ' + log.sala_id;
                         
-                        // Se o UID for da portaria ou o nome vier nulo mas associado à portaria
                         let nomeResponsavel = log.nome ? log.nome : (log.uid_tag === 'WEB-PORTARIA' ? 'Portaria' : 'Desconhecido (Tag: ' + log.uid_tag + ')');
 
                         const div = document.createElement('div');
