@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLACK - Monitoramento</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #E3F2FD; 
+            color: #333;
+        }
+
+        header {
+            background-color: #0D47A1; 
+            color: #FFFFFF;
+            text-align: center;
+            padding: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            margin-bottom: 40px;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            gap: 20px;
+            padding: 0 20px;
+            /* Espaço na direita para o painel de logs não cobrir os cards */
+            margin-right: 340px; 
+            margin-left: 20px;
+        }
+
+        .sala-card {
+            background: #FFFFFF;
+            border-radius: 8px;
+            width: 260px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            border-top: 6px solid #ccc;
+            transition: transform 0.2s;
+        }
+
+        .sala-card h2 { font-size: 1.5rem; margin-bottom: 10px; color: #333; }
+        .sala-card p { font-size: 1rem; color: #666; min-height: 24px; font-weight: 500; }
+
+        .disponivel { border-top-color: #4CAF50; } 
+        .em_uso { border-top-color: #F44336; background-color: #FFEBEE; } 
+        .manutencao { border-top-color: #FF9800; background-color: #FFF8E1; } 
+        .erro { border-top-color: #9E9E9E; background-color: #F5F5F5; color: #d32f2f; } 
+
+        /* Painel de Logs Lateral e Scrollável */
+        .log-panel {
+            position: fixed;
+            top: 90px; 
+            right: 20px;
+            width: 320px;
+            height: calc(100vh - 120px); 
+            background-color: #FFFFFF;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #bbdefb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .log-panel h3 {
+            background-color: #1565C0;
+            color: white;
+            padding: 15px;
+            font-size: 16px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        #lista-logs {
+            padding: 10px;
+            overflow-y: auto; /* Barra de rolagem nativa */
+            flex-grow: 1;
+        }
+
+        .log-item {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+
+        .log-item:last-child { border-bottom: none; }
+        
+        .log-time {
+            color: #888;
+            font-size: 11px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .log-msg { color: #1565C0; font-weight: 600; margin-top: 4px; }
+        .log-negado { color: #d32f2f; font-weight: 600; margin-top: 4px; }
+
+    </style>
+</head>
+<body>
+
+    <header>CLACK</header>
+
+    <!-- Container das Salas -->
+    <div class="container" id="container-salas">
+        <!-- Gerado via JS -->
+    </div>
+
+    <!-- Quadro de Logs -->
+    <div class="log-panel">
+        <h3>Histórico de Acessos</h3>
+        <div id="lista-logs">
+            <!-- Logs gerados via JS -->
+        </div>
+    </div>
+
+    <script>
+        // Função que carrega as salas
+        function carregarSalas() {
+            fetch('api_salas.php')
+                .then(response => {
+                    if (!response.ok) throw new Error("Erro na rede");
+                    return response.json();
+                })
+                .then(salas => {
+                    const container = document.getElementById('container-salas');
+                    container.innerHTML = ''; 
+
+                    salas.forEach(sala => {
+                        const div = document.createElement('div');
+                        div.className = 'sala-card ' + sala.status;
+                        
+                        let statusTexto = '';
+                        if (sala.status === 'em_uso') {
+                            statusTexto = 'Em uso por: ' + (sala.usuario_nome ? sala.usuario_nome : 'Desconhecido');
+                        } else if (sala.status === 'manutencao') {
+                            statusTexto = 'Interditada';
+                        }
+
+                        div.innerHTML = `
+                            <h2>${sala.numero_sala}</h2>
+                            <p>${statusTexto}</p>
+                        `;
+                        container.appendChild(div);
+                    });
+                })
+                .catch(error => {
+                    document.getElementById('container-salas').innerHTML = `
+                        <div class="sala-card erro">
+                            <h2>Sistema Offline</h2>
+                            <p>Servidor não está respondendo.</p>
+                        </div>
+                    `;
+                });
+        }
+
+        // Função que carrega os Logs com o nome do responsável
+        function carregarLogs() {
+            fetch('api_logs.php')
+                .then(response => response.json())
+                .then(logs => {
+                    const container = document.getElementById('lista-logs');
+                    container.innerHTML = ''; 
+
+                    logs.forEach(log => {
+                        let dataObj = new Date(log.data_hora);
+                        let dataFormatada = dataObj.toLocaleString('pt-BR');
+
+                        let classeMsg = log.mensagem.includes("Negado") ? "log-negado" : "log-msg";
+                        let nomeSala = log.numero_sala ? log.numero_sala : 'Sala ' + log.sala_id;
+                        
+                        // Exibe o nome do usuário cadastrado ou a tag se não encontrar
+                        let nomeResponsavel = log.nome ? log.nome : 'Desconhecido (Tag: ' + log.uid_tag + ')';
+
+                        const div = document.createElement('div');
+                        div.className = 'log-item';
+                        div.innerHTML = `
+                            <div class="log-time">${dataFormatada}</div>
+                            <strong>${nomeSala}</strong> <br> ${nomeResponsavel}<br>
+                            <div class="${classeMsg}">${log.mensagem}</div>
+                        `;
+                        container.appendChild(div);
+                    });
+                })
+                .catch(error => console.error('Erro ao buscar logs:', error));
+        }
+
+        // Atualiza salas e logs a cada 2 segundos
+        setInterval(() => {
+            carregarSalas();
+            carregarLogs();
+        }, 2000);
+        
+        // Carga inicial
+        carregarSalas();
+        carregarLogs();
+    </script>
+</body>
+</html>
