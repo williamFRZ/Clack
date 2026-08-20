@@ -1,30 +1,33 @@
 <?php
 header('Content-Type: application/json');
 
+// Conexão com o banco de dados
 $conexao = new mysqli("127.0.0.1", "root", "1234", "clack");
 
 if ($conexao->connect_error) {
     http_response_code(500);
-    echo json_encode(["erro" => "Falha na conexão com o banco"]);
+    echo json_encode(["status" => "erro", "mensagem" => "Falha na conexão com o banco"]);
     exit;
 }
 
-// JOIN triplo: pega o log, o nome da sala e o nome do usuário correspondente à tag
-$sql = "SELECT logs_acesso.*, salas.numero_sala, usuarios.nome 
-        FROM logs_acesso 
-        LEFT JOIN salas ON logs_acesso.sala_id = salas.id 
-        LEFT JOIN usuarios ON logs_acesso.uid_tag = usuarios.uid_tag 
-        ORDER BY data_hora DESC LIMIT 50";
-        
-$resultado = $conexao->query($sql);
+// Busca os logs fazendo LEFT JOIN com salas e usuarios para resgatar nome e matrícula
+$sql = "SELECT l.*, s.numero_sala, u.nome, u.matricula 
+        FROM logs_acesso l 
+        LEFT JOIN salas s ON l.sala_id = s.id 
+        LEFT JOIN usuarios u ON l.uid_tag = u.uid_tag 
+        ORDER BY l.data_hora DESC 
+        LIMIT 50";
 
+$resultado = $conexao->query($sql);
 $logs = [];
-if ($resultado->num_rows > 0) {
-    while($row = $resultado->fetch_assoc()) {
+
+if ($resultado) {
+    while ($row = $resultado->fetch_assoc()) {
         $logs[] = $row;
     }
 }
 
 echo json_encode($logs);
+
 $conexao->close();
 ?>
