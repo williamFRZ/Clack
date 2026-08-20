@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             $stmt_log->bind_param("iss", $sala_id, $uid, $msg_log);
             $stmt_log->execute();
 
-            echo json_encode(["status" => "sucesso", "mensagem" => "Bem-vindo, $nome_usuario!"]);
+            echo json_encode(["status" => "sucesso", "mensagem" => "Responsavel: $nome_usuario!"]);
         } else {
             // Tag encontrada, mas bloqueada
             $msg_log = "Acesso Negado (Tag Bloqueada)";
