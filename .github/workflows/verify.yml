@@ -1,0 +1,63 @@
+name: Verificar base Clack
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  php-api:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test-only-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -ptest-only-password"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, mysqlnd
+          coverage: none
+      - name: Sintaxe e testes locais
+        run: |
+          find . -name '*.php' -print0 | xargs -0 -n1 php -l
+          node tests/frontend_test.js
+          g++ -std=c++11 -Wall -Wextra -pedantic tests/comando_test.cpp -o /tmp/comando-test
+          /tmp/comando-test
+      - name: Banco descartavel e migracao repetivel
+        env:
+          MYSQL_PWD: test-only-password
+        run: |
+          mysql -h127.0.0.1 -uroot < Clack_DB.sql
+          mysql -h127.0.0.1 -uroot < sql/demo.sql
+          printf '%s\n' '<?php return ["db_host"=>"127.0.0.1","db_user"=>"root","db_password"=>"test-only-password","db_name"=>"clack"];' > config/config.local.php
+          mysql -h127.0.0.1 -uroot clack -e 'ALTER TABLE usuarios DROP COLUMN matricula;'
+          php sql/migrate.php
+          php sql/migrate.php
+          test "$(mysql -h127.0.0.1 -uroot -N clack -e 'SELECT COUNT(*) FROM usuarios')" = 1
+          mysql -h127.0.0.1 -uroot < Clack_DB.sql
+          test "$(mysql -h127.0.0.1 -uroot -N clack -e 'SELECT COUNT(*) FROM usuarios')" = 1
+      - name: Teste HTTP integrado
+        run: |
+          php -S 127.0.0.1:8080 > /tmp/clack-php.log 2>&1 &
+          for i in 1 2 3 4 5; do
+            if curl -fsS http://127.0.0.1:8080/api_salas.php; then break; fi
+            sleep 1
+          done
+          python3 tests/integration.py
+  esp32:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install platformio==6.1.18
+      - name: Compilar com configuracao ficticia
+        env:
+          PLATFORMIO_BUILD_FLAGS: -DCLACK_CI
+        run: pio run -d esp32
