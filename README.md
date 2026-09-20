@@ -1,3 +1,7 @@
+# Clack — gestão de acesso
+
+**Nova versão em desenvolvimento:** instalação, firmware, painel e limites estão em [docs/GESTAO.md](docs/GESTAO.md). Confira [o checklist](docs/CHECKLIST.md). APIs antigas foram desativadas; atualize servidor e dispositivos juntos.
+
 # Clack
 
 Protótipo de controle de acesso com ESP32, RC522, servo, PHP e MySQL.
