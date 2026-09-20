@@ -62,3 +62,7 @@ RC522 e OLED em 3,3 V; terras comuns. Servo em alimentação de 5 V adequada, n�
 - Política e fluxo de recuperação/troca de dispositivo, importação revisada dos cadastros antigos.
 - HTTPS local e eventual migração MQTT com autenticação/ACL; testes de carga/limites e revisão de segurança antes de uso em salas reais.
 - Demonstração e evidências do TCC II, depois atualização do texto.
+
+## Plantas por andar
+
+O painel tem seleção fixa de Andar 1, Andar 2 e Andar 3, com placeholder individual e salas filtradas. Adicione `andar-1.png`, `andar-2.png` e `andar-3.png` em `frontend/src/assets/plantas/` e recompile o painel. JPG/JPEG/WebP também são aceitos. As imagens aparecem inteiras; o mapeamento de áreas clicáveis sobre a planta fica para quando as imagens reais estiverem disponíveis. Cadastros antigos chamados Térreo aparecem no Andar 1, sem alteração automática no banco.

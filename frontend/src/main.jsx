@@ -11,8 +11,10 @@ import {
   LogOut,
   Plus,
   KeyRound,
+  Image as ImageIcon,
 } from "lucide-react";
 import "./style.css";
+import { FLOORS, normalizeFloor, floorImage } from "./floors";
 let csrf = "";
 async function api(action, body) {
   const r = await fetch(`../api.php?acao=${action}`, {
@@ -118,9 +120,9 @@ function App() {
       throw e;
     }
   }
-  const floors = [...new Set(data.salas.map((s) => s.andar))],
-    currentFloor = floors.includes(floor) ? floor : floors[0];
-  const rooms = data.salas.filter((s) => s.andar === currentFloor);
+  const currentFloor = FLOORS.includes(floor) ? floor : FLOORS[0];
+  const rooms = data.salas.filter((s) => normalizeFloor(s.andar) === currentFloor);
+  const unmappedRooms = data.salas.filter((s) => !normalizeFloor(s.andar));
   if (loading)
     return (
       <main className="login">
@@ -291,82 +293,26 @@ function App() {
             <section className="panel">
               <div className="toolbar">
                 <div>
-                  <h2>Mapa dos ambientes</h2>
-                  <p>
-                    Mapa esquemático configurável. A planta do campus ainda
-                    precisa ser fornecida.
-                  </p>
+                  <h2>Planta baixa do IFSul</h2>
+                  <p>Selecione um andar para consultar a planta e suas salas.</p>
                 </div>
                 <select
                   aria-label="Andar"
-                  value={currentFloor || ""}
+                  value={currentFloor}
                   onChange={(e) => setFloor(e.target.value)}
                 >
-                  {floors.map((f) => (
-                    <option key={f}>{f}</option>
-                  ))}
+                  {FLOORS.map((f) => <option key={f}>{f}</option>)}
                 </select>
               </div>
-              {rooms.length ? (
-                <svg
-                  className="map"
-                  viewBox={`0 0 ${Math.max(780,...rooms.map(s=>Number(s.x)+160))} ${Math.max(350,...rooms.map(s=>Number(s.y)+150))}`}
-                  aria-label={"Ambientes de " + currentFloor}
-                >
-                  {rooms.map((s) => (
-                    <g
-                      key={s.id}
-                      role="button"
-                      tabIndex="0"
-                      aria-label={`${s.nome}: ${labels[s.estado]}`}
-                      onClick={() => setModal({ kind: "room", value: s })}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setModal({ kind: "room", value: s });
-                        }
-                      }}
-                    >
-                      <rect
-                        x={s.x}
-                        y={s.y}
-                        width="140"
-                        height="120"
-                        rx="10"
-                        className={"room " + s.estado}
-                      />
-                      <text x={Number(s.x) + 12} y={Number(s.y) + 35}>
-                        {s.nome.slice(0, 18)}
-                      </text>
-                      <text
-                        className="map-sub"
-                        x={Number(s.x) + 12}
-                        y={Number(s.y) + 62}
-                      >
-                        {labels[s.estado]}
-                      </text>
-                      <text
-                        className="map-sub"
-                        x={Number(s.x) + 12}
-                        y={Number(s.y) + 91}
-                      >
-                        {Number(s.online) ? "Online" : "Último estado"}
-                      </text>
-                    </g>
-                  ))}
-                </svg>
-              ) : (
-                <div className="empty">
-                  <Layers />
-                  <h3>Nenhum ambiente cadastrado</h3>
-                  <p>
-                    Cadastre salas e vincule os dispositivos em Configurações.
-                  </p>
-                </div>
-              )}
+              <FloorPlan key={currentFloor} floor={currentFloor} />
+              <div className="floor-caption">
+                <strong>{currentFloor}</strong>
+                <span>{rooms.length} {rooms.length === 1 ? "sala cadastrada" : "salas cadastradas"}</span>
+              </div>
             </section>
+            {!rooms.length && <p className="muted">Nenhuma sala cadastrada neste andar.</p>}
             <div className="room-grid">
-              {data.salas.map((s) => (
+              {rooms.map((s) => (
                 <button
                   className="room-card"
                   key={s.id}
@@ -387,6 +333,9 @@ function App() {
                 </button>
               ))}
             </div>
+            {unmappedRooms.length > 0 && <p className="notice">
+              Salas com andar ainda não padronizado: {unmappedRooms.map(s => `${s.nome} (${s.andar})`).join(", ")}. Ajuste o andar em Configurações.
+            </p>}
             <p className="muted">
               Estados representam a atividade registrada. O projeto ainda não
               possui sensor de porta ou confirmação mecânica da tranca.
@@ -669,6 +618,20 @@ function App() {
       )}
     </div>
   );
+}
+function FloorPlan({ floor }) {
+  const [failed, setFailed] = useState(false);
+  const src = floorImage(floor);
+  return <div className="floor-plan" aria-label={`Planta baixa — ${floor}`}>
+    {src && !failed ? <img className="floor-plan-image" src={src} alt={`Planta baixa do IFSul — ${floor}`} onError={() => setFailed(true)} /> :
+      <div className="floor-placeholder">
+        <div className="floor-placeholder-icon"><ImageIcon size={32} aria-hidden="true" /></div>
+        <span className="eyebrow">IFSUL · {floor.toUpperCase()}</span>
+        <h3>{failed ? "Planta indisponível" : "A planta deste andar vem aqui"}</h3>
+        <p>{failed ? "Não foi possível carregar a imagem deste andar." : "Espaço reservado para a imagem da planta baixa do campus."}</p>
+        <span className="floor-pending">{failed ? "Imagem não carregada" : "Aguardando planta baixa"}</span>
+      </div>}
+  </div>;
 }
 function date(s) {
   return s
@@ -1045,12 +1008,10 @@ function Setup({ kind, value, data, save, close }) {
             <>
               <label>
                 Andar
-                <input
-                  name="andar"
-                  required
-                  defaultValue={value?.andar || "Térreo"}
-                  maxLength="50"
-                />
+                <select name="andar" required defaultValue={normalizeFloor(value?.andar) || value?.andar || FLOORS[0]}>
+                  {value?.andar && !normalizeFloor(value.andar) && <option value={value.andar}>{value.andar} (atual)</option>}
+                  {FLOORS.map(f => <option key={f}>{f}</option>)}
+                </select>
               </label>
               <label>
                 Categoria

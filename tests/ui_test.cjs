@@ -75,6 +75,16 @@ const { chromium } = require("../frontend/node_modules/playwright");
   await page.getByLabel("Senha", { exact: true }).fill("test-password");
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await page.getByRole("heading", { name: "Ambientes do campus" }).waitFor();
+  const floors = page.getByRole("combobox", { name: "Andar", exact: true });
+  if ((await floors.locator("option").allTextContents()).join(",") !== "Andar 1,Andar 2,Andar 3") throw Error("Seleção de andares incorreta");
+  await page.getByText("Aguardando planta baixa", { exact: true }).waitFor();
+  await floors.selectOption("Andar 2");
+  await page.getByText("Nenhuma sala cadastrada neste andar.", { exact: true }).waitFor();
+  if (await page.locator(".room-card").count()) throw Error("Salas de outro andar visíveis");
+  await floors.selectOption("Andar 3");
+  await page.getByLabel("Planta baixa — Andar 3", { exact: true }).waitFor();
+  await floors.selectOption("Andar 1");
+  if (await page.locator(".room-card").count() !== 3) throw Error("Salas do térreo não preservadas");
   await page.screenshot({ path: "/tmp/clack-desktop.png", fullPage: true });
   await page.getByRole("button", { name: "Modo escuro" }).click();
   if ((await page.locator("html").getAttribute("data-theme")) !== "dark")
