@@ -310,7 +310,7 @@ function App() {
               {rooms.length ? (
                 <svg
                   className="map"
-                  viewBox="0 0 1000 1000"
+                  viewBox={`0 0 ${Math.max(780,...rooms.map(s=>Number(s.x)+160))} ${Math.max(350,...rooms.map(s=>Number(s.y)+150))}`}
                   aria-label={"Ambientes de " + currentFloor}
                 >
                   {rooms.map((s) => (
