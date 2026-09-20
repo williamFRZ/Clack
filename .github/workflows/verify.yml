@@ -58,6 +58,18 @@ jobs:
       - run: npm ci --prefix frontend
       - run: npm run build --prefix frontend
       - run: git diff --exit-code -- painel
+      - name: Navegação desktop e mobile (API simulada)
+        run: |
+          cd frontend
+          npx playwright install --with-deps chromium
+          cd ..
+          python3 -m http.server 8090 --bind 127.0.0.1 > /tmp/clack-ui.log 2>&1 &
+          node tests/ui_test.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-painel
+          path: /tmp/clack-*.png
   esp32:
     runs-on: ubuntu-latest
     steps:

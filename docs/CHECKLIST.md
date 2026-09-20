@@ -20,7 +20,7 @@
 - [ ] Testar corte de energia, reconexão, histórico e fila cheia em hardware.
 - [ ] Validar alimentação, UPS de 1 A e MG90S sob carga; definir proteções/fonte.
 - [ ] Calibrar tranca, construir miniporta e imprimir peças em PETG.
-- [ ] Melhorar recuperação de dispositivo, rotação de tokens, senha e migração de dados.
+- [ ] Melhorar recuperação de dispositivo, migração de dados.
 - [ ] HTTPS local; MQTT se mantido no escopo final (não implementado nesta entrega).
 - [ ] Testar armário real, montar roteiro/evidências da defesa e atualizar documento TCC II.
 

@@ -54,4 +54,4 @@ if(count($cards)>100) fail('Limite de 100 cartões por dispositivo excedido.',40
 $version=hash('sha256',json_encode($cards));
 if(isset($b['versao']) && is_string($b['versao']) && strlen($b['versao'])<=64) q('UPDATE dispositivos SET versao=? WHERE id=?',[$b['versao'],$did]);
 $cmd=one('SELECT id,acao FROM comandos WHERE dispositivo_id=? AND confirmado_em IS NULL AND expira_em>UTC_TIMESTAMP() ORDER BY id LIMIT 1',[$did]);
-$conexao->commit(); resposta_json(['confirmados'=>$ack,'cartoes'=>$cards,'versao'=>$version,'comando'=>$cmd,'hora'=>time()]);
+$conexao->commit(); resposta_json(['confirmados'=>$ack,'cartoes'=>$cards,'versao'=>$version,'comando'=>$cmd,'hora'=>time(),'ultima_sequencia'=>max($last,$seq)]);

@@ -66,6 +66,11 @@ assert api('historico')['eventos'][0]['nome']=='Professor Teste'
 api('resetar_cartao',{'id':card['id']})
 assert api('painel')['cartoes'][0]['uid'] is None
 api('operador',{'nome':'Porteiro','login':'portaria','senha':'portaria-password','papel':'portaria'})
+api('senha',{'atual':'errada','nova':'new-test-password'},403)
+api('senha',{'atual':'test-password-123','nova':'new-test-password'})
+rotated=api('rotacionar_dispositivo',{'id':d2['id']})
+sync(d2,base,401)
+d2['token']=rotated['token'];sync(d2,base)
 api('logout',{})
 s=api('login',{'login':'portaria','senha':'portaria-password'});csrf=s['csrf']
 api('painel');api('operadores',code=403)

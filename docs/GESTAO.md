@@ -23,6 +23,8 @@ Esta versão substitui painel, API e firmware juntos. As quatro APIs antigas res
 - Um cartão mantido sobre o leitor não deve alternar repetidamente a atividade; a detecção de retirada ainda precisa de teste real com RC522.
 - Contas de portaria e admin separadas; só admin configura ambientes, dispositivos e contas. Sessão expira após 30 minutos sem requisições (o painel aberto renova a sessão com atualização automática). CSRF em mutações, hash de senha e limite de tentativas por IP/login.
 
+Troca de senha está disponível na conta da portaria; outras sessões são invalidadas quando a senha muda. Administradores podem trocar o token de um dispositivo, invalidando a credencial anterior e comandos pendentes sem apagar sequência ou histórico. Atualize o token no firmware, preservando LittleFS.
+
 ## Offline e confirmação
 
 O dispositivo conserva permissões, responsável, estado e até 64 eventos em LittleFS com duas cópias alternadas, geração e checksum. Eventos são persistidos antes da ação; somente IDs confirmados pelo servidor saem da fila. O servidor deduplica por dispositivo/sequência e não aplica snapshots de sequência anterior. Atualizações de heartbeat sem alteração não gravam a flash.
@@ -57,6 +59,6 @@ RC522 e OLED em 3,3 V; terras comuns. Servo em alimentação de 5 V adequada, n�
 - Calibração MG90S, curso do trinco, miniporta e caixa PETG.
 - Medições da UPS de 1 A, proteção de bateria, autonomia e queda/retorno de energia.
 - Testes de bancada com RC522/OLED/servo/buzzer, persistência e fila cheia.
-- Política e fluxo de recuperação/troca de dispositivo, rotação de tokens, alteração de senha e importação revisada dos cadastros antigos.
+- Política e fluxo de recuperação/troca de dispositivo, importação revisada dos cadastros antigos.
 - HTTPS local e eventual migração MQTT com autenticação/ACL; testes de carga/limites e revisão de segurança antes de uso em salas reais.
 - Demonstração e evidências do TCC II, depois atualização do texto.

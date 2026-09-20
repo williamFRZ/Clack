@@ -115,6 +115,9 @@ void syncServer(){
  JsonDocument response;if(deserializeJson(response,body))return;
  if(DEVICE_MODE==1){capture=response["captura"].as<String>();if(capture=="null")capture="";screen(capture.isEmpty()?"Cadastrador pronto":"Aproxime o cartao");return;}
  if(!response["confirmados"].is<JsonArray>()||!response["cartoes"].is<JsonArray>()||!response["versao"].is<const char*>())return;
+ if(response["ultima_sequencia"].as<unsigned long>()>state["sequencia"].as<unsigned long>()){
+  healthy=false;screen("Sequencia divergente","Reprovisione a tranca");return;
+ }
  bool changed=false;JsonArray events=state["eventos"].as<JsonArray>();
  for(int i=(int)events.size()-1;i>=0;i--)for(JsonVariantConst ack:response["confirmados"].as<JsonArrayConst>())if(events[i]["sequencia"].as<unsigned long>()==ack.as<unsigned long>()){events.remove(i);changed=true;break;}
  if(state["versao"].as<String>()!=response["versao"].as<String>()){

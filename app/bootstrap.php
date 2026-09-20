@@ -7,6 +7,7 @@ function rows(string $sql, array $args = []): array { return q($sql,$args)->get_
 function one(string $sql, array $args = []): ?array { return rows($sql,$args)[0] ?? null; }
 function fail(string $message, int $status = 400): never { resposta_json(['mensagem'=>$message],$status); }
 function body(): array {
+ if(strtolower(trim(explode(';',$_SERVER['CONTENT_TYPE']??'')[0]))!=='application/json') fail('Use Content-Type application/json.',415);
  if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0)>65536) fail('Pedido muito grande.',413);
  try { $data = json_decode(file_get_contents('php://input'),true,64,JSON_THROW_ON_ERROR); }
  catch (JsonException $e) { fail('JSON inválido.'); }
@@ -29,9 +30,9 @@ function start_session(): void {
  ini_set('session.use_strict_mode','1'); session_start();
 }
 function operator(bool $admin=false): array {
- $op=one('SELECT id,nome,login,papel FROM operadores WHERE id=? AND ativo=1',[$_SESSION['op']??0]);
- if(!$op || time()-($_SESSION['last']??0)>1800) { session_destroy(); fail('Entre com sua conta da portaria.',401); }
- $_SESSION['last']=time();
+ $op=one('SELECT id,nome,login,papel,senha FROM operadores WHERE id=? AND ativo=1',[$_SESSION['op']??0]);
+ if(!$op || !hash_equals(hash('sha256',$op['senha']),$_SESSION['auth']??'') || time()-($_SESSION['last']??0)>1800) { session_destroy(); fail('Entre com sua conta da portaria.',401); }
+ unset($op['senha']); $_SESSION['last']=time();
  if($admin && $op['papel']!=='admin') fail('Acesso exclusivo do administrador.',403);
  if($_SERVER['REQUEST_METHOD']!=='GET' && !hash_equals($_SESSION['csrf']??'',$_SERVER['HTTP_X_CSRF_TOKEN']??'!')) fail('Sessão inválida. Recarregue a página.',403);
  return $op;

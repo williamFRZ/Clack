@@ -12,7 +12,7 @@ if($action==='login') {
  $op=one('SELECT * FROM operadores WHERE login=? AND ativo=1',[$login]);
  if(!$op||!password_verify($password,$op['senha'])) fail('Login ou senha incorretos.',401);
  q('DELETE FROM tentativas_login WHERE chave=?',[$key]); session_regenerate_id(true);
- $_SESSION=['op'=>$op['id'],'last'=>time(),'csrf'=>bin2hex(random_bytes(32))];
+ $_SESSION=['op'=>$op['id'],'auth'=>hash('sha256',$op['senha']),'last'=>time(),'csrf'=>bin2hex(random_bytes(32))];
  audit($op,'login',[]); unset($op['senha']); resposta_json(['operador'=>$op,'csrf'=>$_SESSION['csrf']]);
 }
 $op=operator();
@@ -55,6 +55,12 @@ case 'cartao':
  $roomIds=array_values(array_unique(array_map(fn($v)=>id(['id'=>$v]),$roomIds)));
  foreach($roomIds as $rid) if(!one('SELECT id FROM ambientes WHERE id=?',[$rid])) fail('Sala não encontrada.');
  $active=($b['ativo']??true)===true?1:0;
+ if($active && $uid) foreach($roomIds as $rid) {
+  // Serialize policy edits per room so concurrent operators cannot exceed cache capacity.
+  one('SELECT id FROM ambientes WHERE id=? FOR UPDATE',[$rid]);
+  $count=one('SELECT COUNT(*) total FROM permissoes p JOIN cartoes c ON c.id=p.cartao_id WHERE p.ambiente_id=? AND c.ativo=1 AND c.uid IS NOT NULL AND c.id<>?',[$rid,$cid??0]);
+  if((int)$count['total']>=100) fail('Limite de 100 cartões ativos por sala atingido.',409);
+ }
  if($cid) q('UPDATE cartoes SET nome=?,matricula=?,externo=?,uid=?,perfil=?,ativo=? WHERE id=?',[$nome,$matricula,(int)$external,$uid,$perfil,$active,$cid]);
  else { q('INSERT INTO cartoes(nome,matricula,externo,uid,perfil,ativo) VALUES(?,?,?,?,?,?)',[$nome,$matricula,(int)$external,$uid,$perfil,$active]); $cid=$conexao->insert_id; }
  q('DELETE FROM permissoes WHERE cartao_id=?',[$cid]); foreach($roomIds as $rid) q('INSERT INTO permissoes VALUES(?,?)',[$cid,$rid]);
@@ -95,6 +101,21 @@ case 'operador':
 case 'bloquear_operador':
  operator(true); $oid=id($b); if($oid===$op['id']) fail('Não é possível bloquear sua própria conta.');
  q('UPDATE operadores SET ativo=0 WHERE id=?',[$oid]); audit($op,'operador_bloqueado',['id'=>$oid]); break;
+case 'senha':
+ $current=txt($b,'atual',72); $new=txt($b,'nova',72);
+ if(strlen($new)<12) fail('Use pelo menos 12 caracteres.');
+ $account=one('SELECT senha FROM operadores WHERE id=? FOR UPDATE',[$op['id']]);
+ if(!password_verify($current,$account['senha'])) fail('Senha atual incorreta.',403);
+ $hash=password_hash($new,PASSWORD_DEFAULT);
+ q('UPDATE operadores SET senha=? WHERE id=?',[$hash,$op['id']]); $_SESSION['auth']=hash('sha256',$hash);
+ session_regenerate_id(true); audit($op,'senha_alterada',[]); break;
+case 'rotacionar_dispositivo':
+ operator(true); $did=id($b);
+ if(!one('SELECT id FROM dispositivos WHERE id=? FOR UPDATE',[$did])) fail('Dispositivo não encontrado.',404);
+ $token=bin2hex(random_bytes(32));
+ q('UPDATE dispositivos SET token_hash=?,ultima_conexao=NULL WHERE id=?',[hash('sha256',$token),$did]);
+ q('UPDATE comandos SET expira_em=UTC_TIMESTAMP() WHERE dispositivo_id=? AND confirmado_em IS NULL',[$did]);
+ audit($op,'token_rotacionado',['id'=>$did]); $conexao->commit(); resposta_json(['id'=>$did,'token'=>$token]);
 case 'dispositivo':
  operator(true); $name=txt($b,'nome'); $type=choice($b,'tipo',['tranca','cadastrador']); $room=$type==='tranca'?id($b,'sala'):null;
  if($room && (!one('SELECT id FROM ambientes WHERE id=?',[$room]) || one('SELECT id FROM dispositivos WHERE ambiente_id=?',[$room]))) fail('Sala inexistente ou já vinculada.');
