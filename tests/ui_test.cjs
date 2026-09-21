@@ -77,11 +77,22 @@ const { chromium } = require("../frontend/node_modules/playwright");
   await page.getByRole("heading", { name: "Ambientes do campus" }).waitFor();
   const floors = page.getByRole("combobox", { name: "Andar", exact: true });
   if ((await floors.locator("option").allTextContents()).join(",") !== "Andar 1,Andar 2,Andar 3") throw Error("Seleção de andares incorreta");
-  await page.getByText("Aguardando planta baixa", { exact: true }).waitFor();
+  async function checkPlan(floor) {
+    const img=page.getByRole("img",{name:`Planta baixa do IFSul — Andar ${floor}`,exact:true});
+    await img.waitFor();
+    await page.waitForFunction(() => { const i=document.querySelector('.floor-plan-image'); return i?.complete && i.naturalWidth>0; });
+    if (!(await img.getAttribute("src")).includes(`andar-${floor}-`)) throw Error("Planta de outro andar");
+  }
+  await checkPlan(1);
+  await page.getByRole("button",{name:"Aumentar zoom",exact:true}).click();
+  if((await page.getByLabel("Nível de zoom",{exact:true}).textContent())!=="150%") throw Error("Zoom inválido");
+  await page.getByRole("button",{name:"Ajustar",exact:true}).click();
   await floors.selectOption("Andar 2");
+  await checkPlan(2);
   await page.getByText("Nenhuma sala cadastrada neste andar.", { exact: true }).waitFor();
   if (await page.locator(".room-card").count()) throw Error("Salas de outro andar visíveis");
   await floors.selectOption("Andar 3");
+  await checkPlan(3);
   await page.getByLabel("Planta baixa — Andar 3", { exact: true }).waitFor();
   await floors.selectOption("Andar 1");
   if (await page.locator(".room-card").count() !== 3) throw Error("Salas do térreo não preservadas");

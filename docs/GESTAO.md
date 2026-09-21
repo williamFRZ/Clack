@@ -65,4 +65,6 @@ RC522 e OLED em 3,3 V; terras comuns. Servo em alimentação de 5 V adequada, n�
 
 ## Plantas por andar
 
-O painel tem seleção fixa de Andar 1, Andar 2 e Andar 3, com placeholder individual e salas filtradas. Adicione `andar-1.png`, `andar-2.png` e `andar-3.png` em `frontend/src/assets/plantas/` e recompile o painel. JPG/JPEG/WebP também são aceitos. As imagens aparecem inteiras; o mapeamento de áreas clicáveis sobre a planta fica para quando as imagens reais estiverem disponíveis. Cadastros antigos chamados Térreo aparecem no Andar 1, sem alteração automática no banco.
+O painel tem seleção fixa de Andar 1, Andar 2 e Andar 3, com placeholder individual e salas filtradas. Adicione `andar-1.png`, `andar-2.png` e `andar-3.png` em `frontend/src/assets/plantas/` e recompile o painel. JPG/JPEG/WebP também são aceitos. As imagens aparecem inteiras; o mapeamento de áreas clicáveis sobre a planta depende da identificação das salas. Cadastros antigos chamados Térreo aparecem no Andar 1, sem alteração automática no banco.
+
+As plantas dos três andares foram recebidas em 21/09/2026 e integradas à cópia local, com zoom de 100% a 300%, ajuste à visualização e abertura do JPG original. A publicação dos três JPGs no repositório público foi autorizada explicitamente pelo usuário em 21/09/2026. As áreas das salas ainda precisam ser identificadas para associar pontos clicáveis à planta real.

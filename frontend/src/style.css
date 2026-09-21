@@ -614,3 +614,12 @@ textarea {
   .floor-placeholder { padding: 36px 18px; }
   .floor-placeholder h3 { font-size: 19px; }
 }
+.floor-tools { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:13px; margin-bottom:12px; }
+.floor-tools .actions { align-items:center; margin:0; gap:4px; }
+.floor-tools output { min-width:44px; text-align:center; font-variant-numeric:tabular-nums; color:var(--muted); }
+.floor-original { color:var(--accent); font-size:13px; padding:8px; }
+.floor-viewport { overflow:auto; max-height:65vh; border:1px solid var(--line); border-radius:8px; background:#fff; }
+.floor-image-stage { min-width:100%; }
+.floor-image-stage .floor-plan-image { object-fit:contain; background:#fff; }
+.floor-viewport:focus-visible { outline:3px solid #61a5e8; outline-offset:3px; }
+.floor-hint { margin-bottom:0; }

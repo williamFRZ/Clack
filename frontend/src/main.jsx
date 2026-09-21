@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import {
   DoorOpen,
@@ -12,6 +12,9 @@ import {
   Plus,
   KeyRound,
   Image as ImageIcon,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
 } from "lucide-react";
 import "./style.css";
 import { FLOORS, normalizeFloor, floorImage } from "./floors";
@@ -621,16 +624,42 @@ function App() {
 }
 function FloorPlan({ floor }) {
   const [failed, setFailed] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const viewport = useRef(null);
+  useEffect(() => {
+    const element = viewport.current;
+    if (element) {
+      element.scrollLeft = (element.scrollWidth - element.clientWidth) / 2;
+      if (zoom === 1) element.scrollTop = 0;
+    }
+  }, [zoom]);
   const src = floorImage(floor);
+  if (src && !failed) return <div className="floor-viewer" aria-label={`Planta baixa — ${floor}`}>
+    <div className="floor-tools">
+      <span>Planta do {floor.toLowerCase()}</span>
+      <div className="actions">
+        <button type="button" className="quiet" aria-label="Diminuir zoom" disabled={zoom <= 1} onClick={() => setZoom(z => Math.max(1,z-.5))}><ZoomOut size={18}/></button>
+        <output aria-live="polite" aria-label="Nível de zoom">{Math.round(zoom*100)}%</output>
+        <button type="button" className="quiet" aria-label="Aumentar zoom" disabled={zoom >= 3} onClick={() => setZoom(z => Math.min(3,z+.5))}><ZoomIn size={18}/></button>
+        <button type="button" className="quiet" onClick={() => setZoom(1)}><Maximize2 size={16}/>Ajustar</button>
+        <a className="floor-original" href={src} target="_blank" rel="noopener noreferrer">Abrir imagem</a>
+      </div>
+    </div>
+    <div ref={viewport} className="floor-viewport" tabIndex="0" aria-label="Planta ampliável; use a rolagem para explorar">
+      <div className="floor-image-stage" style={{width: `${zoom*100}%`}}>
+        <img className="floor-plan-image" style={{maxHeight: `${zoom*60}vh`}} src={src} alt={`Planta baixa do IFSul — ${floor}`} onError={() => setFailed(true)} />
+      </div>
+    </div>
+    <p className="muted floor-hint">Amplie para ver os detalhes e use a rolagem para percorrer a planta.</p>
+  </div>;
   return <div className="floor-plan" aria-label={`Planta baixa — ${floor}`}>
-    {src && !failed ? <img className="floor-plan-image" src={src} alt={`Planta baixa do IFSul — ${floor}`} onError={() => setFailed(true)} /> :
-      <div className="floor-placeholder">
-        <div className="floor-placeholder-icon"><ImageIcon size={32} aria-hidden="true" /></div>
-        <span className="eyebrow">IFSUL · {floor.toUpperCase()}</span>
-        <h3>{failed ? "Planta indisponível" : "A planta deste andar vem aqui"}</h3>
-        <p>{failed ? "Não foi possível carregar a imagem deste andar." : "Espaço reservado para a imagem da planta baixa do campus."}</p>
-        <span className="floor-pending">{failed ? "Imagem não carregada" : "Aguardando planta baixa"}</span>
-      </div>}
+    <div className="floor-placeholder">
+      <div className="floor-placeholder-icon"><ImageIcon size={32} aria-hidden="true" /></div>
+      <span className="eyebrow">IFSUL · {floor.toUpperCase()}</span>
+      <h3>{failed ? "Planta indisponível" : "A planta deste andar vem aqui"}</h3>
+      <p>{failed ? "Não foi possível carregar a imagem deste andar." : "Espaço reservado para a imagem da planta baixa do campus."}</p>
+      <span className="floor-pending">{failed ? "Imagem não carregada" : "Aguardando planta baixa"}</span>
+    </div>
   </div>;
 }
 function date(s) {

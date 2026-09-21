@@ -11,3 +11,5 @@ a sobreposição de áreas clicáveis será ajustada quando houver a planta real
 Os três andares ficam sempre disponíveis. Cadastros antigos chamados Térreo são
 exibidos no Andar 1, sem alteração automática no banco. Outros nomes não reconhecidos
 continuam visíveis no aviso de salas sem andar padronizado e podem ser corrigidos em Configurações.
+
+As três plantas JPG fornecidas pelo usuário em 21/09/2026 estão integradas sem alterar as imagens originais. O visualizador permite zoom e abertura da imagem original.
