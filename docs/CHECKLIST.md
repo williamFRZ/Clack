@@ -1,90 +1,38 @@
-# Clack — checklist de execução
+# Checklist Clack — 20/09/2026
 
-Defesa prevista para dezembro de 2026, sem data exata. Prioridade: parte prática.
-Marcações concluídas abaixo significam código alterado nesta branch, não homologação
-no hardware nem merge na main.
+## Software desenvolvido nesta etapa (validar na bancada)
+- [x] Instalação de banco não destrutiva, configuração fora do Git.
+- [x] Login individual, administrador/portaria, CSRF e auditoria.
+- [x] Cartões: nome, matrícula ou NDA, quatro perfis, salas editáveis, bloqueio e desvinculação.
+- [x] Cadastrador dedicado com captura reservada por operador.
+- [x] Responsabilidade por sala, transferência entre professores e restrição do aluno.
+- [x] Comandos remotos com prazo e confirmação separada do estado físico.
+- [x] Painel React, tema claro/escuro persistente, mapa esquemático por andar.
+- [x] Histórico com snapshots, ocorrência/recebimento e filtro por sala.
+- [x] Firmware com OLED, cache offline e fila persistente com confirmação/deduplicação.
+- [x] Modo armário sem servidor/tela, buzzer e um cartão configurado.
 
-## 1. Base reproduzível (etapa atual)
-- [x] Centralizar conexão PHP e separar credenciais locais.
-- [x] Corrigir divergência de matrícula entre banco e logs.
-- [x] Remover DROP TABLE da instalação e fornecer migração não destrutiva.
-- [x] Validar entradas e métodos; erro não vira comando de fechamento.
-- [x] Usar transação para mudança de estado e histórico.
-- [x] Declarar funções C++, configurar rede/pinos e limitar espera HTTP.
-- [x] Escapar conteúdo do banco ao renderizar o painel.
-- [x] Documentar instalação e atualização.
-- [ ] Executar instalação em outro computador e testar ESP32 real.
+## Próximas metas obrigatórias
+- [ ] Executar instalação no computador do William e em clone limpo; revisar dados antigos.
+- [ ] Regravar firmware + inicializar LittleFS uma vez; validar leitura dos cartões.
+- [ ] Confirmar regra de limpeza e tempo/política de acesso offline.
+- [ ] Fornecer planta e cadastrar posições reais dos andares/salas.
+- [ ] Testar corte de energia, reconexão, histórico e fila cheia em hardware.
+- [ ] Validar alimentação, UPS de 1 A e MG90S sob carga; definir proteções/fonte.
+- [ ] Calibrar tranca, construir miniporta e imprimir peças em PETG.
+- [ ] Melhorar recuperação de dispositivo, migração de dados.
+- [ ] HTTPS local; MQTT se mantido no escopo final (não implementado nesta entrega).
+- [ ] Testar armário real, montar roteiro/evidências da defesa e atualizar documento TCC II.
 
-## 2. Hardware (em paralelo)
-- [x] Escolher OLED SSD1306 I2C 0,96, 128x64, compatível com 3,3 V.
-- [x] Definir RST do RFID em GPIO27 após instalação do OLED; SDA21/SCL22.
-- [x] Escolher UPS 1S 5 V/1 A para orçamento, pendente de teste.
-- [ ] Testar OLED, RFID e servo juntos.
-- [ ] Medir percurso da cremalheira e validar MG90S de posição.
-- [ ] Conferir proteção da UPS e necessidade de BMS externo; escolher fonte.
-- [ ] Testar célula reaproveitada, picos do servo e troca fonte/bateria.
-- [ ] Definir sensor de porta/posição e relógio RTC.
-- [ ] Medir autonomia e registrar limitações.
-
-## 3. Perfis e regras (próxima etapa de software)
-- [ ] Criar perfis: professor, limpeza, aluno autorizado, acesso completo.
-- [ ] Permissões por sala, com predefinições e lista final personalizada.
-- [ ] Professor abre e mantém livre; outro professor assume sem trancar.
-- [ ] Responsável atual encerra ao apresentar o cartão novamente.
-- [ ] Aluno autorizado inicia somente após a sala ser liberada; não assume
-      diretamente de outro responsável; encerra seu próprio uso.
-- [ ] Portaria intervém para abrir/trancar; sem fechamento automático por horário.
-- [ ] Fechar regra da limpeza enquanto a sala está em uso (ainda não decidida).
-- [ ] Impedir repetição enquanto o mesmo cartão permanece no leitor.
-- [ ] Separar estado de uso, comando e confirmação física.
-
-## 4. Offline e histórico
-- [ ] Permissões e responsável persistentes na ESP32.
-- [ ] Registrar eventos antes do envio; IDs únicos, confirmação e reenvio.
-- [ ] Reconectar sem duplicar eventos ou impor estado antigo do servidor.
-- [ ] Definir limite da fila e comportamento quando cheia.
-- [ ] Definir política para permissões antigas e horário sem rede.
-
-## 5. Comunicação
-- [ ] Integrar MQTT/broker local (arquitetura proposta).
-- [ ] Autenticar dispositivos e restringir comandos/tópicos.
-- [ ] Mostrar conectividade, última comunicação e confirmação dos comandos.
-- [ ] Expirar comandos antigos; testar reconexão.
-
-## 6. Portaria e cadastrador
-- [ ] Login individual; administrador gerencia contas e permissões do painel.
-- [ ] Cadastro: nome, matrícula ou NDA, perfil, ambientes e cartão.
-- [ ] Campo de busca de salas, predefinições e remoção individual.
-- [ ] Montar leitor dedicado e capturar UID em sessão de cadastro.
-- [ ] Bloquear/reassociar cartão sem apagar histórico da pessoa anterior.
-- [ ] Registrar operador e mostrar distribuição pendente por tranca.
-
-## 7. Interface
-- [ ] Front-end React com componentes selecionados do 21st.
-- [ ] Tema claro/escuro imediato e preferência persistente.
-- [ ] Obter planta/rascunho dos andares do IFSul.
-- [ ] Mapa interativo: disponível, em uso, manutenção e detalhes da sala.
-- [ ] Exibir offline e horário do último estado conhecido separadamente.
-- [ ] Histórico com filtros e telas de gestão.
-
-## 8. Entregas físicas e defesa
-- [ ] Mensagens no OLED para liberação, transferência, negativa e falhas.
-- [ ] Versão básica para armários: sem servidor/tela, com buzzer.
-- [ ] Miniporta e carcaça PETG.
-- [ ] Medir latência, confiabilidade, autonomia e custo; guardar evidências.
-- [ ] Demonstrar queda do servidor/rede e sincronização posterior.
-- [ ] Escrever TCC II com o que foi efetivamente implementado/testado.
-
-## Orçamento informado — uma tranca
-| Item | Valor |
+## Orçamento conhecido: uma tranca completa
+| Componente | Valor informado |
 |---|---:|
-| ESP32 DevKit | R$45,00 |
-| MG90S | R$20,00 |
-| RC522 | R$22,00 |
-| OLED | R$23,00 |
-| Bateria reaproveitada | R$0,00 |
-| UPS 5 V/1 A (teste pendente) | R$19,00 |
-| Subtotal | **R$129,00** |
+| ESP32 DevKit | R$ 45 |
+| MG90S | R$ 20 |
+| RC522 | R$ 22 |
+| OLED | R$ 23 |
+| Bateria reaproveitada | R$ 0 |
+| UPS 1S 5 V/1 A | R$ 19 |
+| **Subtotal** | **R$ 129** |
 
-Fonte, eventual proteção externa, fios/conectores, fixação e rolo PETG 1 kg:
-preços pendentes. Rolo inteiro no desembolso; gramas usados no custo unitário.
+Ainda cotar: fonte, proteção/acionamento adequado, buzzer, conectores/fios, fixações, mecanismo, miniporta e **um rolo de PETG**. Cadastrador e armário têm orçamentos separados; não confundir subtotal acima com custo final instalado.
