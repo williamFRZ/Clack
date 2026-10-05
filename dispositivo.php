@@ -25,7 +25,7 @@ foreach($events as $event) {
  $seq=id($event,'sequencia'); $result=txt($event,'resultado',60);
  $uid=$event['uid']??null; if($uid!==null&&(!is_string($uid)||!uid_valid($uid))) fail('UID inválido.');
  $name=isset($event['nome'])?txt($event,'nome'):null;
- $profile=isset($event['perfil'])?choice($event,'perfil',['professor','aluno','limpeza','completo']):null;
+ $profile=isset($event['perfil'])?choice($event,'perfil',['professor','aluno','limpeza','completo','ti']):null;
  $ts=$event['timestamp']??null;
  if($ts!==null && (!is_int($ts)||$ts<1704067200||$ts>time()+300)) fail('Data de evento inválida.');
  if(!one('SELECT id FROM eventos WHERE dispositivo_id=? AND sequencia=?',[$did,$seq])) {
@@ -49,7 +49,8 @@ if(!empty($b['comando_confirmado'])) {
  $cid=id($b,'comando_confirmado');
  q('UPDATE comandos SET confirmado_em=COALESCE(confirmado_em,UTC_TIMESTAMP()) WHERE id=? AND dispositivo_id=?',[$cid,$did]);
 }
-$cards=rows('SELECT c.id,c.nome,c.uid,c.perfil FROM cartoes c JOIN permissoes p ON p.cartao_id=c.id WHERE p.ambiente_id=? AND c.ativo=1 AND c.uid IS NOT NULL ORDER BY c.id',[$d['ambiente_id']]);
+$cards=rows("SELECT c.id,c.nome,c.uid,c.perfil FROM cartoes c LEFT JOIN permissoes p ON p.cartao_id=c.id AND p.ambiente_id=?
+ WHERE (p.ambiente_id IS NOT NULL OR c.perfil='ti') AND c.ativo=1 AND c.uid IS NOT NULL ORDER BY c.id",[$d['ambiente_id']]);
 if(count($cards)>100) fail('Limite de 100 cartões por dispositivo excedido.',409);
 $version=hash('sha256',json_encode($cards));
 if(isset($b['versao']) && is_string($b['versao']) && strlen($b['versao'])<=64) q('UPDATE dispositivos SET versao=? WHERE id=?',[$b['versao'],$did]);

@@ -5,20 +5,31 @@ Esta versão substitui painel, API e firmware juntos. As quatro APIs antigas res
 ## Instalar
 
 1. PHP 8.2 com mysqli/mysqlnd e MySQL 8. Crie o banco com `Clack_DB.sql` (sem apagar o anterior), copie `config/config.example.php` para `config/config.local.php` e configure um usuário MySQL próprio.
-2. Execute `php sql/migrate.php` e `php bin/instalar.php`. A instalação de gestão é repetível. Tabelas antigas permanecem intactas; cadastros e permissões precisam ser revisados e cadastrados no novo painel, sem concessão automática de acesso.
-3. Execute `php bin/operador.php admin "Seu nome"`. Digite uma senha de 12 a 72 bytes na entrada padrão. Ela aparece no terminal durante a digitação, mas é armazenada como hash no banco. Não coloque a senha no comando ou no Git.
+2. Execute `php bin/configurar.php admin "Seu nome"`. O configurador instala/atualiza as tabelas, registra a versão do banco e cria o primeiro administrador. Ele pode ser executado novamente: os operadores e dados existentes são preservados e nenhuma senha é alterada. Tabelas antigas permanecem intactas; cadastros e permissões precisam ser revisados no novo painel, sem concessão automática de acesso.
+3. Digite uma senha de 12 a 72 bytes na entrada padrão. Ela aparece no terminal durante a digitação, mas é armazenada somente como hash no banco. Não coloque a senha no comando ou no Git. Depois do primeiro acesso, novas contas são criadas em Configurações; `php bin/operador.php` permanece disponível para criar administradores adicionais.
 4. Em desenvolvimento: `php -S 0.0.0.0:8080 router.php`. Acesse `http://localhost:8080/painel/`. Para Apache/XAMPP, habilite mod_rewrite e AllowOverride para aplicar `.htaccess`; não disponibilize os diretórios de configuração, fontes e banco. O servidor embutido do PHP serve apenas à demonstração em rede confiável, não à implantação pública.
 5. O painel compilado está em `painel/`. Para alterar: `npm ci --prefix frontend` e `npm run build --prefix frontend`. Componentes próprios em React; não foram copiados componentes de terceiros do 21st.
-6. Cadastre ambientes com nome, andar, categoria e coordenadas do mapa. A representação é esquemática até receber a planta real. Evite sobreposição das salas de 140 × 120 unidades.
+6. Cadastre ambientes com nome, andar e categoria. No mapa, use **Posicionar salas**, selecione um ambiente e clique no centro correto na planta. As coordenadas são percentuais e acompanham o zoom. Pontos com borda tracejada são sugestões provisórias, não localizações validadas. Também é possível informar X/Y (0–100%) em Configurações → Editar posição.
 7. Cadastre cada dispositivo. Copie o ID e token exibidos uma única vez para `esp32/include/config.local.h`, baseado no exemplo. Use o IP LAN do computador em SERVER_URL, nunca localhost no ESP32.
 8. Compile com PlatformIO. Na primeira instalação, inicialize LittleFS com `pio run -d esp32 -t uploadfs`; depois `pio run -d esp32 -t upload`. **Não repita uploadfs em dispositivo em uso:** apaga fila, sequência e permissões. Para substituir/reinicializar hardware, é necessária reprovisão controlada; não reutilize uma identidade com sequência zerada.
 9. Cadastre o leitor com DEVICE_MODE=1. No painel, inicie captura, aproxime o cartão e salve nome, matrícula ou NDA, perfil e salas. Não escrevemos dados no cartão: resetar significa desvincular seu UID do cadastro; não é formatação do chip.
 
+### Atalho no Windows com XAMPP
+
+Depois de importar `Clack_DB.sql` pelo phpMyAdmin e preencher `config/config.local.php`, abra o terminal dentro da pasta do Clack e execute:
+
+```powershell
+C:\xampp\php\php.exe bin\configurar.php admin "William Meireles"
+```
+
+Se o MySQL do XAMPP estiver na configuração padrão local, o arquivo pode usar usuário `root`, senha vazia e porta `3306`. Se houver senha ou outro MySQL instalado, use os dados reais desse serviço. Não mantenha dois serviços de banco disputando a mesma porta.
+
 ## Regras implementadas
 
-- Salas explicitamente autorizadas por cartão, inclusive perfil completo. Presets do painel preenchem seleções editáveis; não são permissão implícita.
+- Professor, aluno, limpeza e completo têm salas explicitamente autorizadas por cartão. Presets do painel preenchem seleções editáveis; não são permissão implícita.
+- **TI tem acesso global** a todos os ambientes, inclusive data center, estoque, administrativos e salas cadastradas futuramente. O servidor inclui cartões TI ativos em cada tranca, mesmo sem registros individuais de permissão. A lista só chega ao ESP32 na sincronização; a revogação não é instantânea offline. Ao mudar de TI para outro perfil, apenas as salas explicitamente escolhidas ficam autorizadas.
 - Professor ou completo inicia uma sala disponível, encerra a própria atividade ou assume a responsabilidade de sala em uso sem movimentar o servo.
-- Aluno e limpeza iniciam apenas sala disponível e encerram a própria atividade. **Regra de limpeza provisória**, para confirmar com o usuário.
+- Aluno e limpeza iniciam apenas sala disponível e encerram a própria atividade. A TI também pode iniciar/encerrar a própria atividade em sala disponível. Quando outra pessoa já ocupa a sala, o cartão da TI abre a tranca e grava `acesso_ti_liberado` no histórico, mas conserva o responsável, o horário de início e a cor exibidos no painel. A TI não ignora manutenção/erro. **Regra de limpeza provisória**, para confirmar com o usuário.
 - Manutenção/erro recusam cartões; portaria intervém por comandos autenticados, auditados e com expiração de 30 segundos. Um comando por tranca fica pendente por vez. Não há trancamento automático por horário.
 - Um cartão mantido sobre o leitor não deve alternar repetidamente a atividade; a detecção de retirada ainda precisa de teste real com RC522.
 - Contas de portaria e admin separadas; só admin configura ambientes, dispositivos e contas. Sessão expira após 30 minutos sem requisições (o painel aberto renova a sessão com atualização automática). CSRF em mutações, hash de senha e limite de tentativas por IP/login.
@@ -65,6 +76,20 @@ RC522 e OLED em 3,3 V; terras comuns. Servo em alimentação de 5 V adequada, n�
 
 ## Plantas por andar
 
-O painel tem seleção fixa de Andar 1, Andar 2 e Andar 3, com placeholder individual e salas filtradas. Adicione `andar-1.png`, `andar-2.png` e `andar-3.png` em `frontend/src/assets/plantas/` e recompile o painel. JPG/JPEG/WebP também são aceitos. As imagens aparecem inteiras; o mapeamento de áreas clicáveis sobre a planta depende da identificação das salas. Cadastros antigos chamados Térreo aparecem no Andar 1, sem alteração automática no banco.
+O painel tem seleção fixa de Andar 1, Andar 2 e Andar 3, com as plantas estilizadas em paisagem e salas filtradas. Cadastros antigos chamados Térreo aparecem no Andar 1, sem alteração automática no banco.
 
-As plantas dos três andares foram recebidas em 21/09/2026 e integradas à cópia local, com zoom de 100% a 300%, ajuste à visualização e abertura do JPG original. A publicação dos três JPGs no repositório público foi autorizada explicitamente pelo usuário em 21/09/2026. As áreas das salas ainda precisam ser identificadas para associar pontos clicáveis à planta real.
+As plantas técnicas originais permanecem em `frontend/src/assets/plantas/originais/`, fora do build. O visualizador usa zoom de 100% a 300% e permite abrir a imagem completa.
+
+### Marcadores e dados de uso
+
+| Cor do quadrado | Atividade |
+|---|---|
+| Verde | Disponível |
+| Amarelo | Em uso pela limpeza |
+| Laranja | Em uso pela TI |
+| Vermelho | Em uso por professor, aluno autorizado ou outro responsável |
+| Cinza com `!` | Manutenção / erro (não se confunde com ocupação) |
+
+Mouse e foco pelo teclado exibem responsável, matrícula (ou NDA) e data/hora. Clique/toque abre os detalhes e intervenções da portaria; consultar não aciona a tranca. O horário é apresentado em `America/Sao_Paulo` e vem do último evento de início/transferência aceito pelo servidor. A troca de professor passa a mostrar desde quando o **responsável atual** assumiu a sala. Negativas e reenvios não redefinem esse início. Quando o ESP32 não tinha relógio válido, o início fica desconhecido e o recebimento é mostrado separadamente, sem ser apresentado como horário exato. Offline preserva a última atividade conhecida e exibe um aviso.
+
+O banco passa à versão 3. Execute `php bin/configurar.php` em instalações existentes antes de usar o novo painel: são adicionados `mapa_x`/`mapa_y` e o perfil `ti`, sem apagar salas, cartões ou coordenadas antigas. Os campos antigos `x`/`y` não são convertidos automaticamente porque se referiam ao mapa esquemático, não à planta.

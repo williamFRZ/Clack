@@ -16,6 +16,10 @@ set_exception_handler(function (Throwable $erro): void {
         try { $conexao->rollback(); } catch (Throwable $ignorado) {}
     }
     error_log('[Clack] ' . $erro->getMessage());
+    if (PHP_SAPI === 'cli') {
+        fwrite(STDERR, "Erro: " . $erro->getMessage() . PHP_EOL);
+        exit(1);
+    }
     http_response_code(500);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['status' => 'erro', 'mensagem' => 'Falha interna. Confira o log do servidor.']);

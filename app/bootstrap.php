@@ -38,3 +38,10 @@ function operator(bool $admin=false): array {
  return $op;
 }
 function uid_valid(string $uid): bool { return preg_match('/^[0-9A-F]{2}(?::[0-9A-F]{2}){3}(?:(?::[0-9A-F]{2}){3}|(?::[0-9A-F]{2}){6})?$/D',$uid)===1; }
+function mapa_posicao(array $data): array {
+ $x=$data['mapa_x']??null; $y=$data['mapa_y']??null;
+ if($x===null && $y===null) return [null,null];
+ foreach([$x,$y] as $v) if(!is_int($v)&&!is_float($v)) fail('Posição na planta deve ser numérica.');
+ if(!is_finite((float)$x)||!is_finite((float)$y)||$x<0||$x>100||$y<0||$y>100) fail('Posição na planta deve estar entre 0 e 100%.');
+ return [round($x,3),round($y,3)];
+}

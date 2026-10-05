@@ -32,15 +32,18 @@ jobs:
         run: |
           mysql -h127.0.0.1 -uroot < Clack_DB.sql
           mysql -h127.0.0.1 -uroot < sql/demo.sql
+          mysql -h127.0.0.1 -uroot < tests/migration_v2.sql
           printf '%s\n' '<?php return ["db_host"=>"127.0.0.1","db_user"=>"root","db_password"=>"test-only-password","db_name"=>"clack"];' > config/config.local.php
-          php sql/migrate.php
-          php bin/instalar.php
-          php bin/instalar.php
+          printf '%s\n' 'test-password-123' | php bin/configurar.php admin 'Admin Teste'
+          mysql -h127.0.0.1 -uroot clack -e "UPDATE ambientes SET mapa_x=31.123,mapa_y=40 WHERE nome='Persistida'"
+          php bin/configurar.php
+          test "$(mysql -h127.0.0.1 -uroot -N clack -e 'SELECT CONCAT(x,CHAR(58),y,CHAR(58),mapa_x) FROM ambientes WHERE nome="Persistida"')" = '321:456:31.123'
+          test "$(mysql -h127.0.0.1 -uroot -N clack -e 'SELECT MAX(versao) FROM schema_versoes')" = 3
           test "$(mysql -h127.0.0.1 -uroot -N clack -e 'SELECT COUNT(*) FROM usuarios')" = 1
-          printf '%s\n' 'test-password-123' | php bin/operador.php admin 'Admin Teste'
+          test "$(mysql -h127.0.0.1 -uroot -N clack -e 'SELECT COUNT(*) FROM operadores')" = 1
       - name: Integração HTTP
         run: |
-          php -S 127.0.0.1:8080 > /tmp/clack-php.log 2>&1 &
+          php -S 127.0.0.1:8080 router.php > /tmp/clack-php.log 2>&1 &
           for i in 1 2 3 4 5; do
             if curl -s http://127.0.0.1:8080/api.php; then break; fi
             sleep 1
@@ -56,6 +59,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --prefix frontend
+      - run: node tests/room_status_test.mjs
       - run: npm run build --prefix frontend
       - run: git diff --exit-code -- painel
       - name: Navegação desktop e mobile (API simulada)

@@ -91,9 +91,14 @@ void readCard(const String& uid){
   screen("Acesso negado");beep(false);return;
  }
  auto decision=decidir(state["estado"]|"erro",state["responsavel"]|0,person["id"]|0,person["perfil"]|"");
- const char* result=decision==Decisao::Abrir?"atividade_iniciada":decision==Decisao::Fechar?"atividade_encerrada":decision==Decisao::Transferir?"responsabilidade_transferida":"sala_indisponivel";
+ const char* result=decision==Decisao::Abrir?"atividade_iniciada":decision==Decisao::Fechar?"atividade_encerrada":decision==Decisao::Transferir?"responsabilidade_transferida":decision==Decisao::AcessarSemTransferir?"acesso_ti_liberado":"sala_indisponivel";
  if(!event(result,person.as<JsonObjectConst>()))return;
  if(decision==Decisao::Negar){persist();screen("Sala indisponivel");beep(false);return;}
+ if(decision==Decisao::AcessarSemTransferir){
+  // Registra e movimenta a tranca, mas conserva a atividade e o responsável exibidos no painel.
+  state["pending"]=true;finishMotion(true);
+  screen(healthy?"Acesso TI liberado":"Falha de memoria");return;
+ }
  state["estado"]=decision==Decisao::Fechar?"disponivel":"em_uso";
  if(decision==Decisao::Fechar)state["responsavel"]=nullptr;else state["responsavel"]=person["id"];
  if(decision==Decisao::Transferir){if(persist()){screen("Responsavel alterado",person["nome"].as<String>());beep(true);}return;}

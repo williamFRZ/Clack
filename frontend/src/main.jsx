@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import "./style.css";
 import { FLOORS, normalizeFloor, floorImage } from "./floors";
+import { ROOM_STATUSES, roomStatus, roomUsage, hasMapPosition, markerPosition, relativePosition } from "./room-status";
 let csrf = "";
 async function api(action, body) {
   const r = await fetch(`../api.php?acao=${action}`, {
@@ -44,6 +45,7 @@ const labels = {
   professor: "Professor",
   aluno: "Aluno autorizado",
   limpeza: "Limpeza",
+  ti: "TI",
   completo: "Acesso completo",
 };
 function App() {
@@ -114,7 +116,7 @@ function App() {
     try {
       const r = await api(action, body);
       setNotice(
-        "Alteração salva. Permissões chegam às trancas na próxima sincronização.",
+        action === "posicao_sala" ? "Posição na planta salva." : "Alteração salva. Permissões chegam às trancas na próxima sincronização.",
       );
       await refresh();
       return r;
@@ -277,22 +279,22 @@ function App() {
         {tab === "salas" && (
           <>
             <div className="stats">
-              {["disponivel", "em_uso", "manutencao"].map((state) => (
-                <section key={state}>
-                  <span className={"dot " + state} />
-                  <span>{labels[state]}</span>
+              {ROOM_STATUSES.map((status) => (
+                <section key={status.key}>
+                  <span className={"dot occupancy-" + status.key} />
+                  <span>{status.label}</span>
                   <strong>
-                    {data.salas.filter((s) => s.estado === state).length}
+                    {data.salas.filter((s) => roomStatus(s).key === status.key).length}
                   </strong>
                 </section>
               ))}
-              <section>
-                <span>Sem conexão recente</span>
-                <strong>
-                  {data.salas.filter((s) => !Number(s.online)).length}
-                </strong>
-              </section>
             </div>
+            <p className="muted campus-alerts">
+              Manutenção: {data.salas.filter(s => s.estado === "manutencao").length} ·
+              Verificar: {data.salas.filter(s => s.estado === "erro").length} ·
+              Sem conexão recente: {data.salas.filter(s => !Number(s.online)).length}.
+              O estado offline não altera a última atividade registrada.
+            </p>
             <section className="panel">
               <div className="toolbar">
                 <div>
@@ -307,7 +309,9 @@ function App() {
                   {FLOORS.map((f) => <option key={f}>{f}</option>)}
                 </select>
               </div>
-              <FloorPlan key={currentFloor} floor={currentFloor} />
+              <FloorPlan key={currentFloor} floor={currentFloor} rooms={rooms}
+                canEdit={op.papel === "admin"} save={save}
+                onSelect={room => setModal({ kind: "room", value: room })} />
               <div className="floor-caption">
                 <strong>{currentFloor}</strong>
                 <span>{rooms.length} {rooms.length === 1 ? "sala cadastrada" : "salas cadastradas"}</span>
@@ -321,8 +325,8 @@ function App() {
                   key={s.id}
                   onClick={() => setModal({ kind: "room", value: s })}
                 >
-                  <span className={"badge " + s.estado}>
-                    {labels[s.estado]}
+                  <span className={"badge occupancy-" + roomStatus(s).key}>
+                    {roomStatus(s).label}
                   </span>
                   <h3>{s.nome}</h3>
                   <p>
@@ -622,10 +626,63 @@ function App() {
     </div>
   );
 }
-function FloorPlan({ floor }) {
+function OccupancyDetails({ room }) {
+  const status = roomStatus(room);
+  const usage = roomUsage(room);
+  return <div className="occupancy-details">
+    <span className={`badge occupancy-${status.key}`}>{status.label}</span>
+    {usage ? <dl>
+      <div><dt>Responsável</dt><dd>{usage.name}</dd></div>
+      <div><dt>Matrícula</dt><dd>{usage.enrollment}</dd></div>
+      <div><dt>Em uso desde</dt><dd>{usage.since}</dd></div>
+      {usage.received && <div><dt>Registro recebido</dt><dd>{usage.received} (não é o horário de início)</dd></div>}
+    </dl> : <p>{room.estado === "disponivel" ? "Sem atividade em andamento." : "Sala indisponível para iniciar uma atividade."}</p>}
+    {!Number(room.online) && <p className="muted">Dispositivo sem conexão recente. Informação da última sincronização.</p>}
+  </div>;
+}
+function FloorPlan({ floor, rooms = [], canEdit = false, save, onSelect }) {
   const [failed, setFailed] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [peek, setPeek] = useState(null);
+  const [peekAnchor, setPeekAnchor] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [placing, setPlacing] = useState("");
+  const [savingPosition, setSavingPosition] = useState(false);
+  const [imageRatio, setImageRatio] = useState(1491 / 1055);
+  const [portrait, setPortrait] = useState(false);
+  const [fitWidth, setFitWidth] = useState(0);
   const viewport = useRef(null);
+  const ordered = [...rooms].sort((a, b) => Number(a.id) - Number(b.id));
+  const shownRoom = rooms.find(room => room.id === peek);
+  const unpositioned = rooms.filter(room => !hasMapPosition(room));
+  const placementRoom = rooms.find(room => String(room.id) === placing);
+  function reveal(room, event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setPeekAnchor({
+      left: Math.max(8, Math.min(window.innerWidth - 288, rect.left + rect.width / 2 - 140)),
+      top: window.innerHeight - rect.bottom >= 310 ? rect.bottom + 8 : Math.max(8, rect.top - 310),
+    });
+    setPeek(room.id);
+  }
+  async function place(event) {
+    if (!placementRoom || savingPosition) return;
+    const coordinates = relativePosition(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
+    if (!coordinates) return;
+    setSavingPosition(true);
+    try { await save("posicao_sala", { id: placementRoom.id, ...coordinates }); }
+    catch { /* O painel já apresenta o erro retornado pelo servidor. */ }
+    finally { setSavingPosition(false); }
+  }
+  useEffect(() => {
+    const element = viewport.current;
+    if (!element) return;
+    const fit = () => setFitWidth(Math.min(element.clientWidth, window.innerHeight * .6 * imageRatio));
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(element);
+    window.addEventListener("resize", fit);
+    return () => { observer.disconnect(); window.removeEventListener("resize", fit); };
+  }, [imageRatio, failed]);
   useEffect(() => {
     const element = viewport.current;
     if (element) {
@@ -635,6 +692,10 @@ function FloorPlan({ floor }) {
   }, [zoom]);
   const src = floorImage(floor);
   if (src && !failed) return <div className="floor-viewer" aria-label={`Planta baixa — ${floor}`}>
+    <div className="floor-legend" aria-label="Legenda de disponibilidade">
+      {ROOM_STATUSES.map(status => <span key={status.key}><i className={`legend-square occupancy-${status.key}`} aria-hidden="true" />{status.label}</span>)}
+      <span><i className="legend-square occupancy-maintenance" aria-hidden="true" />Manutenção / verificar</span>
+    </div>
     <div className="floor-tools">
       <span>Planta do {floor.toLowerCase()}</span>
       <div className="actions">
@@ -643,14 +704,63 @@ function FloorPlan({ floor }) {
         <button type="button" className="quiet" aria-label="Aumentar zoom" disabled={zoom >= 3} onClick={() => setZoom(z => Math.min(3,z+.5))}><ZoomIn size={18}/></button>
         <button type="button" className="quiet" onClick={() => setZoom(1)}><Maximize2 size={16}/>Ajustar</button>
         <a className="floor-original" href={src} target="_blank" rel="noopener noreferrer">Abrir imagem</a>
+        {canEdit && <button type="button" className="secondary" disabled={!rooms.length}
+          aria-pressed={editing} onClick={() => {
+            setEditing(value => !value); setPeek(null);
+            if (!placing) setPlacing(String(unpositioned[0]?.id || rooms[0]?.id || ""));
+          }}>{editing ? "Concluir posicionamento" : "Posicionar salas"}</button>}
       </div>
     </div>
-    <div ref={viewport} className="floor-viewport" tabIndex="0" aria-label="Planta ampliável; use a rolagem para explorar">
-      <div className="floor-image-stage" style={{width: `${zoom*100}%`}}>
-        <img className="floor-plan-image" style={{maxHeight: `${zoom*60}vh`}} src={src} alt={`Planta baixa do IFSul — ${floor}`} onError={() => setFailed(true)} />
+    {editing && <div className="map-editor">
+      <label>Sala para posicionar
+        <select aria-label="Sala para posicionar" value={placing} disabled={savingPosition} onChange={event => setPlacing(event.target.value)}>
+          {rooms.map(room => <option key={room.id} value={room.id}>{room.nome}{!hasMapPosition(room) ? " — posição provisória" : ""}</option>)}
+        </select>
+      </label>
+      <p role="status">{savingPosition ? "Salvando posição…" : `Clique no centro de ${placementRoom?.nome || "uma sala"} na planta para salvar o quadrado. O posicionamento não abre a tranca.`}</p>
+      <small>Para posicionar usando o teclado, abra Configurações → Editar posição e informe X/Y em porcentagem.</small>
+    </div>}
+    <div ref={viewport} className="floor-viewport" tabIndex="0" aria-label="Planta ampliável; use a rolagem para explorar" onWheel={() => setPeek(null)}>
+      <div className="floor-image-stage" style={{width: fitWidth ? `${fitWidth * zoom}px` : `${zoom*100}%`, aspectRatio: imageRatio, "--plan-ratio": imageRatio}}>
+        <img className={`floor-plan-image${portrait ? " portrait" : ""}`} src={src} alt={`Planta baixa do IFSul — ${floor}`}
+          onLoad={event => {
+            const { naturalWidth: width, naturalHeight: height } = event.currentTarget;
+            setPortrait(height > width);
+            setImageRatio(Math.max(width, height) / Math.min(width, height));
+          }} onError={() => setFailed(true)} />
+        {editing && <button type="button" className="map-placement-surface" tabIndex={-1} disabled={savingPosition || !placementRoom}
+          aria-label="Clique na planta para posicionar a sala selecionada" onClick={place} />}
+        {ordered.map((room, index) => {
+          const position = markerPosition(room, index, floor);
+          const status = roomStatus(room);
+          return <button key={room.id} type="button"
+            className={`room-marker occupancy-${status.key}${position.provisional ? " provisional" : ""}${editing && placing === String(room.id) ? " placing" : ""}`}
+            style={{ left: `${position.x}%`, top: `${position.y}%` }}
+            data-room-id={room.id} data-provisional={position.provisional}
+            aria-label={`${room.nome} — ${status.label}${position.provisional ? " — posição provisória" : ""}`}
+            aria-describedby={shownRoom?.id === room.id ? `room-preview-${floor.replace(" ", "-")}` : undefined}
+            onMouseEnter={event => reveal(room, event)} onMouseLeave={() => setPeek(null)}
+            onFocus={event => reveal(room, event)} onBlur={() => setPeek(null)}
+            onKeyDown={event => { if (event.key === "Escape") setPeek(null); }}
+            onClick={() => { setPeek(null); if (editing) setPlacing(String(room.id)); else onSelect?.(room); }}>
+            <span aria-hidden="true">{status.key === "maintenance" || status.key === "unknown" ? "!" : ""}</span>
+            <span className="marker-label" aria-hidden="true">{room.nome}</span>
+          </button>;
+        })}
       </div>
     </div>
-    <p className="muted floor-hint">Amplie para ver os detalhes e use a rolagem para percorrer a planta.</p>
+    {shownRoom && peekAnchor && !editing && <div className="room-hover-popover" style={peekAnchor} aria-hidden="true">
+      <h3>{shownRoom.nome}</h3><OccupancyDetails room={shownRoom} />
+    </div>}
+    <div className="room-map-preview" id={`room-preview-${floor.replace(" ", "-")}`} aria-live="polite">
+      {shownRoom ? <><h3>{shownRoom.nome}</h3><OccupancyDetails room={shownRoom} /></> :
+        <p>Passe o mouse ou use Tab nos quadrados para consultar responsável, matrícula e horário. Clique/toque para abrir os detalhes.</p>}
+    </div>
+    {unpositioned.length > 0 && <p className="map-position-warning">
+      {unpositioned.length} {unpositioned.length === 1 ? "sala com posição provisória" : "salas com posições provisórias"} (borda tracejada).
+      Os pontos sugeridos não confirmam a localização real. {canEdit ? "Use Posicionar salas para associar cada cadastro ao centro correto." : "Peça ao administrador para confirmar as posições."}
+    </p>}
+    <p className="muted floor-hint">Amplie para ver os detalhes e use a rolagem para percorrer a planta. As cores representam atividades registradas, não a posição física da porta.</p>
   </div>;
   return <div className="floor-plan" aria-label={`Planta baixa — ${floor}`}>
     <div className="floor-placeholder">
@@ -670,11 +780,9 @@ function date(s) {
 function Room({ room: s, commands, save }) {
   return (
     <>
-      <span className={"badge " + s.estado}>{labels[s.estado]}</span>
       <h2>{s.nome}</h2>
-      <p>
-        {s.andar} · {s.responsavel_nome || "Sem responsável"}
-      </p>
+      <p>{s.andar}</p>
+      <OccupancyDetails room={s} />
       <p>Última conexão: {date(s.ultima_conexao)}</p>
       <p>
         Intervenções ficam registradas em seu nome. A confirmação indica
@@ -799,10 +907,11 @@ function Card({ value, data, save, report, close }) {
       <label>
         Perfil
         <select
+          aria-label="Perfil"
           value={form.perfil}
           onChange={(e) => set("perfil", e.target.value)}
         >
-          {["professor", "aluno", "limpeza", "completo"].map((p) => (
+          {["professor", "aluno", "limpeza", "ti", "completo"].map((p) => (
             <option key={p} value={p}>
               {labels[p]}
             </option>
@@ -810,10 +919,12 @@ function Card({ value, data, save, report, close }) {
         </select>
       </label>
       <h3>Salas permitidas</h3>
+      {form.perfil === "ti" && <p className="notice">TI tem acesso a todas as salas, incluindo data center, estoque e novos ambientes. Não é necessário selecionar salas individualmente.</p>}
       <div className="actions">
         <button
           type="button"
           className="quiet"
+          disabled={form.perfil === "ti"}
           onClick={() =>
             set(
               "salas",
@@ -826,6 +937,7 @@ function Card({ value, data, save, report, close }) {
         <button
           type="button"
           className="quiet"
+          disabled={form.perfil === "ti"}
           onClick={() =>
             set(
               "salas",
@@ -838,6 +950,7 @@ function Card({ value, data, save, report, close }) {
         <button
           type="button"
           className="quiet"
+          disabled={form.perfil === "ti"}
           onClick={() => set("salas", [])}
         >
           Limpar
@@ -848,7 +961,8 @@ function Card({ value, data, save, report, close }) {
           <label className="check" key={s.id}>
             <input
               type="checkbox"
-              checked={form.salas.includes(s.id)}
+              checked={form.perfil === "ti" || form.salas.includes(s.id)}
+              disabled={form.perfil === "ti"}
               onChange={(e) =>
                 set(
                   "salas",
@@ -863,7 +977,7 @@ function Card({ value, data, save, report, close }) {
         ))}
       </div>
       <small>
-        O perfil não concede salas automaticamente. Confira a seleção acima.
+        {form.perfil === "ti" ? "Acesso global da TI aplicado pelo servidor." : "O perfil não concede salas automaticamente. Confira a seleção acima."}
       </small>
       <label className="check">
         <input
@@ -933,6 +1047,7 @@ function Card({ value, data, save, report, close }) {
 }
 function Setup({ kind, value, data, save, close }) {
   const [result, setResult] = useState(null);
+  const [setupFloor, setSetupFloor] = useState(normalizeFloor(value?.andar) || value?.andar || FLOORS[0]);
   return (
     <form
       onSubmit={(e) => {
@@ -940,8 +1055,10 @@ function Setup({ kind, value, data, save, close }) {
         const b = Object.fromEntries(new FormData(e.target));
         if (value) b.id = value.id;
         if (kind === "environment") {
-          b.x = Number(b.x);
-          b.y = Number(b.y);
+          b.x = Number(value?.x || 0);
+          b.y = Number(value?.y || 0);
+          b.mapa_x = b.mapa_x === "" ? null : Number(b.mapa_x);
+          b.mapa_y = b.mapa_y === "" ? null : Number(b.mapa_y);
         }
         if (kind === "device" && b.sala) b.sala = Number(b.sala);
         save(
@@ -1037,7 +1154,7 @@ function Setup({ kind, value, data, save, close }) {
             <>
               <label>
                 Andar
-                <select name="andar" required defaultValue={normalizeFloor(value?.andar) || value?.andar || FLOORS[0]}>
+                <select name="andar" required value={setupFloor} onChange={event => setSetupFloor(event.target.value)}>
                   {value?.andar && !normalizeFloor(value.andar) && <option value={value.andar}>{value.andar} (atual)</option>}
                   {FLOORS.map(f => <option key={f}>{f}</option>)}
                 </select>
@@ -1054,31 +1171,31 @@ function Setup({ kind, value, data, save, close }) {
                 </select>
               </label>
               <p>
-                Posição no mapa esquemático (0–850). Cada sala ocupa 140 × 120
-                unidades.
+                Centro do quadrado na planta: X/Y em porcentagem (0–100).
+                Deixe ambos vazios para usar um placeholder provisório.
+                Você também pode clicar em Posicionar salas no mapa.
               </p>
-              <div className="actions">
+              <div className="actions" key={setupFloor}>
                 <label>
-                  X
+                  X na planta (%)
                   <input
-                    name="x"
+                    name="mapa_x"
                     type="number"
+                    step="0.001"
                     min="0"
-                    max="850"
-                    defaultValue={value?.x ?? (data.salas.length % 5) * 180}
+                    max="100"
+                    defaultValue={setupFloor === (normalizeFloor(value?.andar) || value?.andar) ? value?.mapa_x ?? "" : ""}
                   />
                 </label>
                 <label>
-                  Y
+                  Y na planta (%)
                   <input
-                    name="y"
+                    name="mapa_y"
                     type="number"
+                    step="0.001"
                     min="0"
-                    max="850"
-                    defaultValue={
-                      value?.y ??
-                      Math.min(850, Math.floor(data.salas.length / 5) * 160)
-                    }
+                    max="100"
+                    defaultValue={setupFloor === (normalizeFloor(value?.andar) || value?.andar) ? value?.mapa_y ?? "" : ""}
                   />
                 </label>
               </div>

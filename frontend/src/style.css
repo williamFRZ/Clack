@@ -619,7 +619,57 @@ textarea {
 .floor-tools output { min-width:44px; text-align:center; font-variant-numeric:tabular-nums; color:var(--muted); }
 .floor-original { color:var(--accent); font-size:13px; padding:8px; }
 .floor-viewport { overflow:auto; max-height:65vh; border:1px solid var(--line); border-radius:8px; background:#fff; }
-.floor-image-stage { min-width:100%; }
-.floor-image-stage .floor-plan-image { object-fit:contain; background:#fff; }
+.floor-image-stage { position:relative; margin-inline:auto; }
+.floor-image-stage .floor-plan-image { object-fit:contain; background:#fff; max-height:none; }
+.floor-image-stage .floor-plan-image.portrait { position:absolute; left:50%; top:50%; width:calc(100% / var(--plan-ratio)); transform:translate(-50%, -50%) rotate(90deg); }
 .floor-viewport:focus-visible { outline:3px solid #61a5e8; outline-offset:3px; }
 .floor-hint { margin-bottom:0; }
+.campus-alerts { margin-top:-12px; margin-bottom:22px; }
+.occupancy-available { --occupancy:#16a34a; --occupancy-tint:#e7f6ec; --occupancy-ink:#14532d; }
+.occupancy-cleaning { --occupancy:#eab308; --occupancy-tint:#fff7cd; --occupancy-ink:#713f12; }
+.occupancy-it { --occupancy:#f97316; --occupancy-tint:#fff0e4; --occupancy-ink:#9a3412; }
+.occupancy-occupied { --occupancy:#dc2626; --occupancy-tint:#fde8e8; --occupancy-ink:#991b1b; }
+.occupancy-maintenance, .occupancy-unknown { --occupancy:#64748b; --occupancy-tint:#edf1f5; --occupancy-ink:#334155; }
+.dot[class*="occupancy-"], .legend-square { background:var(--occupancy); }
+.badge[class*="occupancy-"] { background:var(--occupancy-tint); color:var(--occupancy-ink); }
+.floor-legend { display:flex; flex-wrap:wrap; gap:10px 18px; margin-bottom:18px; font-size:12px; color:var(--muted); }
+.floor-legend > span { display:inline-flex; gap:7px; align-items:center; }
+.legend-square { display:inline-block; width:12px; height:12px; border:1px solid #24344744; border-radius:2px; }
+.room-marker {
+  position:absolute; transform:translate(-50%,-50%); width:30px; height:30px;
+  padding:0; border:2px solid #fff; border-radius:3px; background:var(--occupancy);
+  color:#fff; box-shadow:0 0 0 1px #243447,0 2px 6px #24344744; z-index:2;
+}
+.room-marker::before { content:""; position:absolute; inset:-7px; }
+.room-marker.provisional { border:2px dashed #243447; }
+.room-marker:hover, .room-marker:focus-visible, .room-marker.placing { z-index:3; box-shadow:0 0 0 3px #254c76,0 3px 8px #24344755; filter:none; }
+.marker-label {
+  display:none; position:absolute; top:calc(100% + 6px); left:50%; transform:translateX(-50%);
+  padding:4px 7px; border:1px solid #dce3eb; border-radius:4px; background:#fff;
+  color:#243447; font-size:11px; font-weight:600; white-space:nowrap;
+  pointer-events:none; max-width:180px; overflow:hidden; text-overflow:ellipsis;
+}
+.room-marker:hover .marker-label, .room-marker:focus-visible .marker-label, .room-marker.placing .marker-label { display:block; }
+.map-placement-surface { position:absolute; inset:0; width:100%; height:100%; padding:0; background:transparent; border-radius:0; cursor:crosshair; z-index:1; }
+.map-placement-surface:hover:not(:disabled) { background:transparent; filter:none; }
+.map-editor { padding:14px 16px; margin-bottom:12px; background:var(--hover); border:1px solid var(--line); border-radius:8px; }
+.map-editor label { margin:0; max-width:400px; }
+.map-editor p { margin:10px 0 4px; }
+.room-map-preview { border:1px solid var(--line); border-radius:8px; background:var(--bg); padding:14px 16px; margin-top:14px; min-height:96px; }
+.room-map-preview h3 { margin:0 0 10px; }
+.room-map-preview > p { margin:0; }
+.room-hover-popover { position:fixed; width:280px; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px); overflow:auto; padding:16px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--text); box-shadow:0 6px 24px #10233833; z-index:6; pointer-events:none; }
+.room-hover-popover h3 { margin:0 0 10px; }
+.room-hover-popover .occupancy-details dl { grid-template-columns:1fr; gap:10px; }
+.occupancy-details dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin:14px 0 0; }
+.occupancy-details dt { color:var(--muted); font-size:11px; margin-bottom:5px; }
+.occupancy-details dd { margin:0; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
+.occupancy-details p { margin:10px 0 0; }
+.map-position-warning { border-left:3px solid #a18b36; padding:8px 12px; font-size:12px; color:var(--muted); }
+@media (max-width:650px) {
+  .room-marker { width:24px; height:24px; }
+  .floor-legend { gap:8px 12px; font-size:11px; }
+  .floor-tools .actions { width:100%; }
+  .floor-tools .actions > button[aria-pressed] { margin-top:6px; }
+  .occupancy-details dl { grid-template-columns:1fr; }
+}
