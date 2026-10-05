@@ -4,6 +4,36 @@ Protótipo acadêmico de controle de acesso do TCC: ESP32, RC522, MG90S e painel
 
 ## Começar
 
+O caminho principal é **[o tutorial completo com Docker](docs/DOCKER.md)**:
+download, senhas, primeiro acesso, salas e plantas, cartões, ESP32 na rede,
+atualização, backup e restauração. A versão atual está na branch `main`.
+
+Instale Git e Docker com Compose, abra o Docker Desktop com containers Linux
+e execute:
+
+```sh
+git clone --branch main https://github.com/williamFRZ/Clack.git
+cd Clack
+```
+
+Copie `.env.example` para `.env` (`Copy-Item .env.example .env` no PowerShell ou
+`cp .env.example .env` no Linux/macOS) e preencha as duas senhas do banco.
+Depois:
+
+```sh
+docker compose up -d --build --wait --wait-timeout 240
+docker compose exec web php bin/configurar.php admin "Seu nome"
+```
+
+Digite a senha do administrador quando solicitado e abra
+**[http://localhost:8080/painel/](http://localhost:8080/painel/)**.
+O Docker recompila o painel, migra as tabelas e conserva banco/sessões em volumes.
+Não há senha padrão nem cadastros de demonstração. Para ESP32 na LAN, configure
+`CLACK_BIND_IP=0.0.0.0` conforme o tutorial. `docker compose down` preserva dados;
+`down -v` apaga os volumes.
+
+### Instalação sem Docker
+
 Siga **[instalação e funcionamento](docs/GESTAO.md)**. Requisitos: PHP 8.2 com mysqli/mysqlnd, MySQL 8 e PlatformIO para o ESP32. O painel compilado está incluído: Node só é necessário para editar/recompilar a interface.
 
 1. Importe `Clack_DB.sql` e configure `config/config.local.php` usando o exemplo.
@@ -36,8 +66,8 @@ g++ -std=c++11 tests/regras_test.cpp -o /tmp/clack-regras
 /tmp/clack-regras
 ```
 
-O workflow `.github/workflows/verify.yml` verifica PHP/MySQL com banco descartável, instalação repetível, integração HTTP, regras C++, compilação do ESP32 e navegação desktop/mobile com API simulada. O teste de navegador não substitui os testes integrados com hardware.
+O workflow `.github/workflows/verify.yml` verifica PHP/MySQL com banco descartável, instalação repetível, integração HTTP, regras C++, compilação do ESP32 e navegação desktop/mobile com API simulada. Também constrói e inicia o Docker, verifica persistência após recriação e faz backup/restauração em banco descartável. Os testes não substituem a validação do hardware.
 
 [Checklist e orçamento](docs/CHECKLIST.md) · [Regras, pinagem e limitações](docs/GESTAO.md)
 
-Para atualizar instalações existentes ao banco versão 3, execute `php bin/configurar.php` antes de abrir o novo painel. [Guia para juntar as branches com segurança](docs/BRANCHES.md).
+Para atualizar instalações existentes ao banco versão 3 sem Docker, execute `php bin/configurar.php` antes de abrir o novo painel. Com Docker, a migração roda na inicialização. [Guia para atualizar e integrar branches com segurança](docs/BRANCHES.md).

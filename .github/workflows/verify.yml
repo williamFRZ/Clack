@@ -3,6 +3,12 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalação Docker, API, persistência e backup
+        run: sh tests/docker_test.sh
   php-api:
     runs-on: ubuntu-latest
     services:

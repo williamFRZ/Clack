@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/api_common.php';
-$configPath = __DIR__ . '/config/config.local.php';
+$configPath = __DIR__ . '/config/' . (getenv('CLACK_DOCKER') === '1' ? 'config.docker.php' : 'config.local.php');
 if (!is_file($configPath)) {
     resposta_json(['status' => 'erro', 'mensagem' => 'Configure config/config.local.php conforme o README.'], 503);
 }

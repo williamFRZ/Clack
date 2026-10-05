@@ -19,26 +19,29 @@ propõe incorporar uma branch na outra. Merge faz essa incorporação.
    para comparar os commits. Não faça force push ou rebase automático.
 
 A atualização das plantas, marcadores e TI foi consolidada sobre a branch
-remota `feat/gestao-acessos`, preservando seus commits anteriores. O PR dessa
-branch continua separado da `main` até a revisão e integração.
+remota `feat/gestao-acessos`, preservando seus commits anteriores. A base de
+instalação e a gestão foram integradas à `main` pelos PRs #1 e #2.
+A `main` é o ponto de partida para novas instalações e para o tutorial Docker.
 
 Para atualizar um clone que já está nessa branch, com a árvore de trabalho limpa:
 
 ```sh
 git fetch origin
-git pull --ff-only origin feat/gestao-acessos
+git switch main
+git pull --ff-only origin main
 php bin/configurar.php
 ```
 
 Se você trabalha em outra branch, confira `git status` e preserve suas alterações
-antes de usar `git switch feat/gestao-acessos`. Esse procedimento atualiza o
-servidor; o firmware precisa ser atualizado separadamente.
+antes de usar `git switch main`. Com Docker, em vez do último comando, execute
+`docker compose up -d --build --wait --wait-timeout 240`; a migração é automática.
+Esse procedimento atualiza o servidor; o firmware é atualizado separadamente.
 
 ## Pelo GitHub (depois de validar e publicar os commits)
 
 1. Abra o PR da funcionalidade e confira as branches indicadas:
    **base** é a que recebe o código; **compare** é a que entrega o código.
-2. Se o PR ainda tiver base `fix/base-instalacao-clack`, ele é encadeado: primeiro
+2. Em futuros PRs, se a base for outra branch de trabalho, ele é encadeado: primeiro
    conclua/revise a base para `main`; depois revise o destino do PR da gestão
    para `main`. Não mescle em uma branch intermediária achando que foi para main.
 3. Revise a lista de arquivos e aguarde os testes. Se houver conflitos, resolva

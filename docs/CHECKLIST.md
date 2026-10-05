@@ -1,4 +1,4 @@
-# Checklist Clack — 02/10/2026
+# Checklist Clack — 04/10/2026
 
 ## Software desenvolvido nesta etapa (validar na bancada)
 - [x] Instalação de banco não destrutiva, configuração fora do Git.
@@ -13,6 +13,8 @@
 - [x] Quadrados verde/amarelo/laranja/vermelho, consulta por mouse/teclado/toque de responsável, matrícula e início de uso.
 - [x] Posicionamento por clique, coordenadas percentuais e indicação explícita de pontos provisórios.
 - [x] Atualização idempotente para banco versão 3 (perfil TI e posições na planta).
+- [x] Docker Compose com build do painel, Apache/PHP, MySQL e volumes persistentes.
+- [x] Tutorial completo de instalação/uso com Docker, rede do ESP32, atualização e backup/restauração.
 - [x] Histórico com snapshots, ocorrência/recebimento e filtro por sala.
 - [x] Firmware com OLED, cache offline e fila persistente com confirmação/deduplicação.
 - [x] Modo armário sem servidor/tela, buzzer e um cartão configurado.

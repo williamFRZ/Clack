@@ -1,0 +1,43 @@
+name: clack
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: clack
+      MYSQL_USER: clack_app
+      MYSQL_PASSWORD: ${CLACK_DB_PASSWORD:?Preencha CLACK_DB_PASSWORD no arquivo .env}
+      MYSQL_ROOT_PASSWORD: ${CLACK_DB_ROOT_PASSWORD:?Preencha CLACK_DB_ROOT_PASSWORD no arquivo .env}
+    volumes:
+      - banco:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", 'MYSQL_PWD="$$MYSQL_PASSWORD" mysql --user="$$MYSQL_USER" --database="$$MYSQL_DATABASE" --execute="SELECT 1" >/dev/null 2>&1']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+  web:
+    build: .
+    restart: unless-stopped
+    environment:
+      CLACK_DOCKER: "1"
+      CLACK_DB_HOST: db
+      CLACK_DB_NAME: clack
+      CLACK_DB_USER: clack_app
+      CLACK_DB_PASSWORD: ${CLACK_DB_PASSWORD:?Preencha CLACK_DB_PASSWORD no arquivo .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${CLACK_BIND_IP:-127.0.0.1}:${CLACK_PORT:-8080}:80"
+    volumes:
+      - sessoes:/var/lib/php/sessions
+    healthcheck:
+      test: ["CMD", "php", "bin/saude.php"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+volumes:
+  banco:
+  sessoes:

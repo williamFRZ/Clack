@@ -1,6 +1,6 @@
 """Integration against a disposable MySQL database and PHP HTTP server."""
-import json, urllib.request, urllib.error, http.cookiejar
-BASE='http://127.0.0.1:8080/'
+import json, os, urllib.request, urllib.error, http.cookiejar
+BASE=os.environ.get('CLACK_TEST_URL', 'http://127.0.0.1:8080/').rstrip('/')+'/'
 jar=http.cookiejar.CookieJar()
 client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
 csrf=''

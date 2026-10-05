@@ -4,6 +4,10 @@ Esta versão substitui painel, API e firmware juntos. As quatro APIs antigas res
 
 ## Instalar
 
+Para instalar servidor/painel com containers, siga **[DOCKER.md](DOCKER.md)**.
+Ele inclui primeiro administrador, rede do ESP32, uso, atualização e backup.
+Os passos desta seção são para a instalação sem Docker.
+
 1. PHP 8.2 com mysqli/mysqlnd e MySQL 8. Crie o banco com `Clack_DB.sql` (sem apagar o anterior), copie `config/config.example.php` para `config/config.local.php` e configure um usuário MySQL próprio.
 2. Execute `php bin/configurar.php admin "Seu nome"`. O configurador instala/atualiza as tabelas, registra a versão do banco e cria o primeiro administrador. Ele pode ser executado novamente: os operadores e dados existentes são preservados e nenhuma senha é alterada. Tabelas antigas permanecem intactas; cadastros e permissões precisam ser revisados no novo painel, sem concessão automática de acesso.
 3. Digite uma senha de 12 a 72 bytes na entrada padrão. Ela aparece no terminal durante a digitação, mas é armazenada somente como hash no banco. Não coloque a senha no comando ou no Git. Depois do primeiro acesso, novas contas são criadas em Configurações; `php bin/operador.php` permanece disponível para criar administradores adicionais.
@@ -66,7 +70,7 @@ RC522 e OLED em 3,3 V; terras comuns. Servo em alimentação de 5 V adequada, n�
 
 ## Pendências de entrega física e implantação
 
-- Planta dos andares, identificação real de salas e definição final de limpeza.
+- Plantas estilizadas incluídas; faltam a identificação/posição real de salas e a definição final de limpeza.
 - Calibração MG90S, curso do trinco, miniporta e caixa PETG.
 - Medições da UPS de 1 A, proteção de bateria, autonomia e queda/retorno de energia.
 - Testes de bancada com RC522/OLED/servo/buzzer, persistência e fila cheia.
