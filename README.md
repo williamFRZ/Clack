@@ -46,6 +46,8 @@ Siga **[instalação e funcionamento](docs/GESTAO.md)**. Requisitos: PHP 8.2 com
 
 ## Recursos desta versão
 
+Para começar os cadastros, siga **[Configurar a primeira sala](docs/PRIMEIRA-SALA.md)**.
+
 - Contas individuais de portaria/admin, troca de senha, auditoria e rotação de tokens.
 - Cartões com matrícula/NDA, cinco perfis, TI com acesso global e entrada em sala ocupada sem assumir a atividade; salas selecionáveis para os demais e leitura em cadastrador dedicado.
 - Professor assume responsabilidade de sala em uso; aluno só inicia atividade em sala disponível.

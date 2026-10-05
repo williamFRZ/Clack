@@ -1,17 +1,17 @@
 export const ROOM_STATUSES = [
   { key: "available", label: "Disponível" },
-  { key: "cleaning", label: "Em uso pela limpeza" },
-  { key: "it", label: "Em uso pela TI" },
   { key: "occupied", label: "Em uso" },
+  { key: "it", label: "Em uso pela TI" },
+  { key: "cleaning", label: "Em uso pela limpeza" },
 ];
 
 export function roomStatus(room) {
   if (room.estado === "disponivel") return ROOM_STATUSES[0];
   if (room.estado === "manutencao") return { key: "maintenance", label: "Manutenção" };
   if (room.estado !== "em_uso") return { key: "unknown", label: "Verificar estado" };
-  if (room.responsavel_perfil === "limpeza") return ROOM_STATUSES[1];
+  if (room.responsavel_perfil === "limpeza") return ROOM_STATUSES[3];
   if (room.responsavel_perfil === "ti") return ROOM_STATUSES[2];
-  return ROOM_STATUSES[3];
+  return ROOM_STATUSES[1];
 }
 
 export function usageDate(value) {

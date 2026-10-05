@@ -618,12 +618,13 @@ textarea {
 .floor-tools .actions { align-items:center; margin:0; gap:4px; }
 .floor-tools output { min-width:44px; text-align:center; font-variant-numeric:tabular-nums; color:var(--muted); }
 .floor-original { color:var(--accent); font-size:13px; padding:8px; }
-.floor-viewport { overflow:auto; max-height:65vh; border:1px solid var(--line); border-radius:8px; background:#fff; }
+.floor-viewport { overflow:auto; max-height:65vh; border:1px solid var(--line); border-radius:8px; background:transparent; }
 .floor-image-stage { position:relative; margin-inline:auto; }
-.floor-image-stage .floor-plan-image { object-fit:contain; background:#fff; max-height:none; }
+.floor-image-stage .floor-plan-image { object-fit:contain; background:transparent; max-height:none; }
 .floor-image-stage .floor-plan-image.portrait { position:absolute; left:50%; top:50%; width:calc(100% / var(--plan-ratio)); transform:translate(-50%, -50%) rotate(90deg); }
 .floor-viewport:focus-visible { outline:3px solid #61a5e8; outline-offset:3px; }
 .floor-hint { margin-bottom:0; }
+.draft-room-marker { position:absolute; width:20px; height:20px; background:#16a34a; border:2px solid white; border-radius:3px; box-shadow:0 0 0 2px #14532d; transform:translate(-50%,-50%); pointer-events:none; z-index:3; }
 .campus-alerts { margin-top:-12px; margin-bottom:22px; }
 .occupancy-available { --occupancy:#16a34a; --occupancy-tint:#e7f6ec; --occupancy-ink:#14532d; }
 .occupancy-cleaning { --occupancy:#eab308; --occupancy-tint:#fff7cd; --occupancy-ink:#713f12; }

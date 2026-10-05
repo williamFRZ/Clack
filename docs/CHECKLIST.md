@@ -10,8 +10,13 @@
 - [x] Comandos remotos com prazo e confirmação separada do estado físico.
 - [x] Painel React, tema claro/escuro persistente e seleção dos três andares.
 - [x] Plantas estilizadas dos três andares integradas em orientação horizontal, com zoom e abertura da imagem completa.
+- [x] Plantas com fundo externo transparente e sem os textos dos andares na imagem.
+- [x] Indicadores na ordem Disponível → Em uso → Em uso pela TI → Em uso pela limpeza, preservando as cores.
 - [x] Quadrados verde/amarelo/laranja/vermelho, consulta por mouse/teclado/toque de responsável, matrícula e início de uso.
 - [x] Posicionamento por clique, coordenadas percentuais e indicação explícita de pontos provisórios.
+- [x] Posicionamento no cadastro/edição da sala: planta por andar, clique, zoom e limpeza da seleção ao trocar de andar.
+- [x] Tutorial específico da primeira sala, incluindo posicionamento antes de salvar.
+- [x] Remoção da frase sobre sensores na tela de Ambientes; limites físicos mantidos na documentação técnica.
 - [x] Atualização idempotente para banco versão 3 (perfil TI e posições na planta).
 - [x] Docker Compose com build do painel, Apache/PHP, MySQL e volumes persistentes.
 - [x] Tutorial completo de instalação/uso com Docker, rede do ESP32, atualização e backup/restauração.
@@ -28,12 +33,18 @@
 - [ ] Montar o mecanismo do trinco e repetir o teste com carga.
 
 ## Prioridade 2 — instalar servidor e testar o fluxo completo
-- [ ] Executar instalação no computador do William a partir de um clone limpo.
-- [ ] Criar banco, conta administrativa e revisar/importar dados antigos.
+- [x] Iniciar Docker no computador do William, configurar .env e validar login/painel.
+- [x] Criar banco persistente e primeiro administrador no Docker.
+- [ ] Revisar/importar dados antigos, se necessários.
 - [ ] Cadastrar uma sala, uma tranca e o cadastrador da portaria.
 - [ ] Inicializar LittleFS uma única vez e gravar o firmware completo.
 - [ ] Validar RFID, OLED, servo, cadastro, permissões, transferência de professor, acesso da TI sem troca de responsável e intervenção da portaria.
 - [ ] Testar corte de energia, reconexão, deduplicação do histórico e fila cheia em hardware.
+
+Próximo passo: [configurar a primeira sala](PRIMEIRA-SALA.md), posicionar na
+planta e conectar uma tranca e um cadastrador. Marcar cadastros e testes físicos
+somente após executá-los com os dispositivos reais. A validação automatizada do
+formulário usa API simulada e não cria salas no banco de demonstração.
 
 ## Prioridade 3 — fechar decisões e apresentação
 - [ ] Confirmar a regra definitiva do perfil limpeza.
