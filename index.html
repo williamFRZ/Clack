@@ -137,6 +137,7 @@
 
     <header>CLACK</header>
 
+    <p style="text-align:center;margin:0 20px 20px">Protótipo: os estados representam solicitações, sem confirmação física da tranca.</p>
     <!-- Container das Salas -->
     <div class="container" id="container-salas">
         <!-- Gerado via JS -->
@@ -151,34 +152,48 @@
     </div>
 
     <script>
+        function escaparHtml(valor) {
+            return String(valor ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        async function buscarJson(url, opcoes) {
+            const resposta = await fetch(url, opcoes);
+            const dados = await resposta.json();
+            if (!resposta.ok) throw new Error(dados.mensagem || 'Falha na requisicao');
+            return dados;
+        }
+
         function carregarSalas() {
-            fetch('api_salas.php')
-                .then(response => {
-                    if (!response.ok) throw new Error("Erro na rede");
-                    return response.json();
-                })
+            buscarJson('api_salas.php')
                 .then(salas => {
                     const container = document.getElementById('container-salas');
                     container.innerHTML = ''; 
 
                     salas.forEach(sala => {
                         const div = document.createElement('div');
-                        div.className = 'sala-card ' + sala.status;
+                        const id = Number(sala.id);
+                        if (!Number.isSafeInteger(id) || id <= 0) return;
+                        const estados = ['disponivel', 'em_uso', 'manutencao'];
+                        div.className = 'sala-card ' + (estados.includes(sala.status) ? sala.status : 'erro');
                         
                         let statusTexto = '';
                         if (sala.status === 'em_uso') {
                             statusTexto = 'Em uso por: ' + (sala.usuario_nome ? sala.usuario_nome : 'Desconhecido');
                         } else if (sala.status === 'manutencao') {
                             statusTexto = 'Manutenção por: ' + (sala.usuario_nome ? sala.usuario_nome : 'Limpeza');
-                        } else {
+                        } else if (sala.status === 'disponivel') {
                             statusTexto = 'Disponível';
+                        } else {
+                            statusTexto = 'Estado indisponível';
                         }
 
                         div.innerHTML = `
-                            <h2>${sala.numero_sala}</h2>
-                            <p>${statusTexto}</p>
-                            <button class="btn-controle btn-abrir" onclick="controlarSala(${sala.id}, 'abrir')">Destrancar (Abrir)</button>
-                            <button class="btn-controle btn-fechar" onclick="controlarSala(${sala.id}, 'fechar')">Trancar (Fechar)</button>
+                            <h2>${escaparHtml(sala.numero_sala)}</h2>
+                            <p>${escaparHtml(statusTexto)}</p>
+                            <button class="btn-controle btn-abrir" onclick="controlarSala(${id}, 'abrir')">Destrancar (Abrir)</button>
+                            <button class="btn-controle btn-fechar" onclick="controlarSala(${id}, 'fechar')">Trancar (Fechar)</button>
                         `;
                         container.appendChild(div);
                     });
@@ -198,25 +213,23 @@
             formData.append('sala_id', salaId);
             formData.append('acao', acao);
 
-            fetch('api_acao.php', {
+            buscarJson('api_acao.php', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
             .then(data => {
                 if(data.status === 'sucesso') {
                     carregarSalas();
                     carregarLogs();
                 } else {
-                    alert("Erro ao alterar o status da sala.");
+                    alert(data.mensagem || "Erro ao alterar o status da sala.");
                 }
             })
-            .catch(error => console.error('Erro:', error));
+            .catch(error => alert(error.message));
         }
 
         function carregarLogs() {
-            fetch('api_logs.php')
-                .then(response => response.json())
+            buscarJson('api_logs.php')
                 .then(logs => {
                     const container = document.getElementById('lista-logs');
                     container.innerHTML = ''; 
@@ -234,16 +247,16 @@
                         const div = document.createElement('div');
                         div.className = 'log-item';
                         div.innerHTML = `
-                            <div class="log-time">${dataFormatada}</div>
-                            <strong>${nomeSala}</strong><br>
-                            Responsável: ${nomeResponsavel}<br>
-                            <div class="log-matricula">${matriculaResponsavel}</div>
-                            <div class="${classeMsg}">${log.mensagem}</div>
+                            <div class="log-time">${escaparHtml(dataFormatada)}</div>
+                            <strong>${escaparHtml(nomeSala)}</strong><br>
+                            Responsável: ${escaparHtml(nomeResponsavel)}<br>
+                            <div class="log-matricula">${escaparHtml(matriculaResponsavel)}</div>
+                            <div class="${classeMsg}">${escaparHtml(log.mensagem)}</div>
                         `;
                         container.appendChild(div);
                     });
                 })
-                .catch(error => console.error('Erro ao buscar logs:', error));
+                .catch(error => { document.getElementById('lista-logs').textContent = 'Histórico indisponível: ' + error.message; });
         }
 
         setInterval(() => {

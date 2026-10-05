@@ -1,0 +1,6 @@
+/config/config.local.php
+/esp32/include/config.local.h
+/esp32/.pio/
+*.log
+__pycache__/
+*.pyc

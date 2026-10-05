@@ -1,156 +1,109 @@
+#include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <SPI.h>
 #include <MFRC522.h>
 #include <ESP32Servo.h>
+#include "comando.h"
+#if __has_include("config.local.h")
+#include "config.local.h"
+#elif defined(CLACK_CI)
+#include "config.example.h"
+#else
+#error "Copie include/config.example.h para include/config.local.h e preencha a configuracao."
+#endif
 
-// 1. Configurações de Rede
-const char* ssid = "Meireles";
-const char* password = "65144392091";
-
-// Substitua pelo IPv4 do computador (ipconfig)
-const char* serverBase = "http://192.168.0.119/clack/api_hardware.php";
-
-// 2. Configuração dos Pinos do Leitor RFID (VSPI)
-#define SS_PIN  5
-#define RST_PIN 22
-MFRC522 rfid(SS_PIN, RST_PIN);
-
-// 3. Configuração do Servo Motor SG90
-#define PINO_SERVO 4
+MFRC522 rfid(5, RFID_RST_PIN);
 Servo travaServo;
+int estadoAtualTrava = -1;
+unsigned long ultimaConsulta = 0;
+unsigned long ultimaConexao = 0;
+constexpr unsigned long INTERVALO_CONSULTA = 2000;
+constexpr unsigned long INTERVALO_RECONEXAO = 10000;
 
-// Ângulos da trava mecânica
-const int ANGULO_TRANCADO = 180;   // Porta trancada
-const int ANGULO_ABERTO   = 0;  // Porta destrancada
-int estadoAtualTrava = -1;       // Guarda o último estado aplicado
+void conectarWiFi();
+void consultarComando();
 
-// 4. Variáveis de Controle
-const int ID_SALA = 1; // Sala 204
-unsigned long tempoAnterior = 0;
-const long intervaloPolling = 2000;
-
-// Variáveis para controle da reconexão Wi-Fi sem travar o código
-unsigned long ultimaTentativaConexao = 0;
-const long intervaloTentativaConexao = 10000; // Tenta reconectar a cada 10 segundos se cair
+void prepararHttp(HTTPClient& http) {
+  http.setConnectTimeout(2000);
+  http.setTimeout(2000);
+}
 
 void setup() {
   Serial.begin(115200);
-
-  // Inicializa o Servo Motor SG90
   ESP32PWM::allocateTimer(0);
-  travaServo.setPeriodHertz(50); // Frequência padrão de 50Hz para SG90
-  travaServo.attach(PINO_SERVO, 500, 2400); // Faixa de pulso do SG90
-  travaServo.write(ANGULO_TRANCADO);
-  estadoAtualTrava = ANGULO_TRANCADO;
-
-  // Conexão Wi-Fi Inicial
-  conectarWiFi();
-
-  // Inicializa RFID
-  SPI.begin();
+  travaServo.setPeriodHertz(50);
+  travaServo.attach(SERVO_PIN, 500, 2400);
+  // Comportamento de partida legado: ainda requer validacao mecanica e sensores.
+  travaServo.write(SERVO_FECHADO);
+  estadoAtualTrava = SERVO_FECHADO;
+  SPI.begin(18, 19, 23, 5);
   rfid.PCD_Init();
-  
-  Serial.println("[Sistema] RFID e Servo prontos. Clack online!");
+  WiFi.mode(WIFI_STA);
+  conectarWiFi();
+  Serial.println("[Clack] Hardware inicializado; acesso offline ainda nao implementado.");
 }
 
 void conectarWiFi() {
-  Serial.print("Conectando ao Wi-Fi");
-  WiFi.begin(ssid, password);
-  
-  // Timeout curto no setup para não travar infinito se o roteador demorar
-  int tentativas = 0;
-  while (WiFi.status() != WL_CONNECTED && tentativas < 20) {
-    delay(500);
-    Serial.print(".");
-    tentativas++;
+  ultimaConexao = millis();
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.println("[Wi-Fi] Tentando conectar...");
+}
+
+void consultarComando() {
+  ultimaConsulta = millis();
+  HTTPClient http;
+  prepararHttp(http);
+  String url = String(SERVER_URL) + "?acao=status&sala=" + String(SALA_ID);
+  http.begin(url);
+  int codigo = http.GET();
+  String resposta = codigo == 200 ? http.getString() : "";
+  resposta.trim();
+  Comando comando = interpretarComando(codigo, resposta.c_str());
+  http.end();
+  if (comando == Comando::Ignorar) {
+    Serial.printf("[HTTP] Sem comando valido (%d); mantendo a trava.\n", codigo);
+    return;
   }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n[Wi-Fi] Conectado com sucesso!");
-    Serial.print("[Wi-Fi] IP da ESP32: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println("\n[Wi-Fi] Falha na conexao inicial. Tentando em segundo plano...");
+  int angulo = comando == Comando::Abrir ? SERVO_ABERTO : SERVO_FECHADO;
+  if (angulo != estadoAtualTrava) {
+    travaServo.write(angulo);
+    estadoAtualTrava = angulo;
+    Serial.printf("[Trava] Comando %s, angulo %d; sem sensor de confirmacao.\n",
+      comando == Comando::Abrir ? "abrir" : "fechar", angulo);
   }
 }
 
 void loop() {
-  unsigned long tempoAtual = millis();
-
-  // VERIFICAÇÃO CONTÍNUA DE WI-FI: Se caiu, tenta reconectar sem travar o loop
+  unsigned long agora = millis();
   if (WiFi.status() != WL_CONNECTED) {
-    if (tempoAtual - ultimaTentativaConexao >= intervaloTentativaConexao) {
-      ultimaTentativaConexao = tempoAtual;
-      Serial.println("[Wi-Fi] Conexão perdida. Tentando reconectar...");
-      WiFi.disconnect();
-      WiFi.begin(ssid, password);
-    }
-    // Se estiver sem Wi-Fi, pula o restante do loop para evitar erros de HTTP
-    return; 
+    if (agora - ultimaConexao >= INTERVALO_RECONEXAO) conectarWiFi();
+    delay(10);
+    return; // Etapa futura: validacao local e fila persistente.
   }
+  if (agora - ultimaConsulta >= INTERVALO_CONSULTA) consultarComando();
+  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) return;
 
-  // TAREFA 1: Polling do Servidor para Movimentar o Servo
-  if (tempoAtual - tempoAnterior >= intervaloPolling) {
-    tempoAnterior = tempoAtual;
-
-    HTTPClient http;
-    String url = String(serverBase) + "?acao=status&sala=" + String(ID_SALA);
-    
-    http.begin(url);
-    int httpCode = http.GET();
-
-    if (httpCode > 0) {
-      String payload = http.getString();
-
-      if (payload.indexOf("abrir") >= 0) {
-        if (estadoAtualTrava != ANGULO_ABERTO) {
-          travaServo.write(ANGULO_ABERTO);
-          estadoAtualTrava = ANGULO_ABERTO;
-          Serial.println("[Trava] Girando para ABERTO (180 graus)");
-        }
-      } else {
-        if (estadoAtualTrava != ANGULO_TRANCADO) {
-          travaServo.write(ANGULO_TRANCADO);
-          estadoAtualTrava = ANGULO_TRANCADO;
-          Serial.println("[Trava] Girando para FECHADO (0 graus)");
-        }
-      }
-    } else {
-      Serial.printf("[HTTP GET] Falha: %d\n", httpCode);
-    }
-    http.end();
+  String uid;
+  for (byte i = 0; i < rfid.uid.size; ++i) {
+    if (i) uid += ':';
+    if (rfid.uid.uidByte[i] < 0x10) uid += '0';
+    uid += String(rfid.uid.uidByte[i], HEX);
   }
-
-  // TAREFA 2: Leitura do Cartão NFC
-  if (rfid.PICC_IsNewCardPresent() && rfid.PICC_ReadCardSerial()) {
-    String uidCard = "";
-    for (byte i = 0; i < rfid.uid.size; i++) {
-      uidCard += String(rfid.uid.uidByte[i] < 0x10 ? "0" : "");
-      uidCard += String(rfid.uid.uidByte[i], HEX);
-      if (i < rfid.uid.size - 1) uidCard += ":";
-    }
-    uidCard.toUpperCase();
-
-    Serial.println("\n[RFID] Tag detectada: " + uidCard);
-
-    HTTPClient http;
-    http.begin(serverBase);
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-    String dadosPost = "acao=ler_tag&sala=" + String(ID_SALA) + "&uid=" + uidCard;
-    int httpCode = http.POST(dadosPost);
-
-    if (httpCode > 0) {
-      String resposta = http.getString();
-      Serial.println("[Servidor] " + resposta);
-    } else {
-      Serial.printf("[HTTP POST] Falha: %d\n", httpCode);
-    }
-    http.end();
-
-    rfid.PICC_HaltA();
-    rfid.PCD_StopCrypto1();
-    delay(1000);
-  }
+  uid.toUpperCase();
+  rfid.PICC_HaltA();
+  rfid.PCD_StopCrypto1();
+  Serial.println("[RFID] " + uid);
+  HTTPClient http;
+  prepararHttp(http);
+  http.begin(SERVER_URL);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  int codigo = http.POST("acao=ler_tag&sala=" + String(SALA_ID) + "&uid=" + uid);
+  Serial.printf("[HTTP POST] %d\n", codigo);
+  if (codigo > 0) Serial.println(http.getString());
+  http.end();
+  // O GET valida comando exato; o corpo do POST nunca e usado como comando.
+  if (codigo == 200) consultarComando();
+  // Sem reenvio automatico do POST: a regra legada alterna estado.
+  delay(500);
 }
