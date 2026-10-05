@@ -1,0 +1,6 @@
+Options -Indexes
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^(?:config|app|bin|sql|tests|frontend|esp32|docs|infra|\.git|\.github)(?:/|$) - [F,L]
+RewriteRule ^(?:Clack_DB\.sql|router\.php|conexao\.php|api_common\.php|README\.md|\.gitignore)$ - [F,L]
+</IfModule>

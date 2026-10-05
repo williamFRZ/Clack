@@ -1,0 +1,1 @@
+{"name":"clack-painel","private":true,"version":"0.2.0","type":"module","scripts":{"build":"vite build","dev":"vite --host 0.0.0.0"},"dependencies":{"lucide-react":"0.468.0","react":"19.0.0","react-dom":"19.0.0"},"devDependencies":{"playwright":"1.62.1","vite":"6.4.3"}}
