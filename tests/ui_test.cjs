@@ -8,6 +8,7 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
     viewport: { width: 1440, height: 1000 },
   });
   let logged = false;
+  let savedRoom = null;
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   const sample = {
@@ -92,6 +93,12 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
       room.mapa_x = body.mapa_x; room.mapa_y = body.mapa_y;
       data = { ok: true };
     }
+    else if (action === "sala") {
+      if (r.request().headers()["x-csrf-token"] !== "test") throw Error("CSRF ausente no cadastro");
+      savedRoom = r.request().postDataJSON();
+      sample.salas.push({ ...savedRoom, id: 99, estado: "disponivel", online: 0 });
+      data = { ok: true };
+    }
     else if (action === "historico") data = { eventos: [], auditoria: [] };
     else if (action === "operadores") data = { operadores: [] };
     await r.fulfill({
@@ -174,6 +181,24 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
     await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)
   )
     throw Error("Mobile overflow");
+  await page.getByRole("button", { name: "Configurações", exact: true }).click();
+  await page.getByRole("button", { name: "Cadastrar sala", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Nome", { exact: true }).fill("Sala nova");
+  await dialog.locator('select[name="andar"]').selectOption("Andar 2");
+  const draftSurface = dialog.getByRole("button", { name: "Definir posição da sala na planta", exact: true });
+  let draftBox = await draftSurface.boundingBox();
+  await draftSurface.click({ position: { x: draftBox.width * .25, y: draftBox.height * .6 } });
+  if (Math.abs(Number(await dialog.getByLabel("X na planta (%)", { exact: true }).inputValue()) - 25) > .5) throw Error("Clique não preenche posição do cadastro");
+  await dialog.locator('select[name="andar"]').selectOption("Andar 3");
+  if (await dialog.getByLabel("X na planta (%)", { exact: true }).inputValue() !== "" || await dialog.locator('.map-placement-surface').count() !== 1) throw Error("Troca de andar mantém posição ou duplica planta");
+  await dialog.getByRole("button", { name: "Aumentar zoom do cadastro", exact: true }).click();
+  draftBox = await draftSurface.boundingBox();
+  await draftSurface.click({ position: { x: draftBox.width * .6, y: draftBox.height * .4 } });
+  await page.screenshot({ path: join(screenshotDirectory, "clack-cadastro-sala.png"), fullPage: true });
+  await dialog.getByRole("button", { name: "Salvar", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  if (savedRoom?.andar !== "Andar 3" || Math.abs(savedRoom.mapa_x - 60) > .5 || Math.abs(savedRoom.mapa_y - 40) > .5) throw Error("Cadastro não envia coordenadas com zoom");
   if (errors.length) throw Error(errors.join("\n"));
   console.log(
     "UI: login, andares, cores, mouse/teclado/toque, matrícula, horário, posicionamento, TI global, tema e largura móvel OK (API simulada).",

@@ -343,10 +343,6 @@ function App() {
             {unmappedRooms.length > 0 && <p className="notice">
               Salas com andar ainda não padronizado: {unmappedRooms.map(s => `${s.nome} (${s.andar})`).join(", ")}. Ajuste o andar em Configurações.
             </p>}
-            <p className="muted">
-              Estados representam a atividade registrada. O projeto ainda não
-              possui sensor de porta ou confirmação mecânica da tranca.
-            </p>
           </>
         )}
         {tab === "cartoes" && (
@@ -1045,9 +1041,44 @@ function Card({ value, data, save, report, close }) {
     </form>
   );
 }
+function RoomPositionPicker({ floor, position, onPosition }) {
+  const [ratio, setRatio] = useState(1491 / 1055);
+  const [portrait, setPortrait] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const src = floorImage(floor);
+  if (!src || failed) return <p className="muted">Planta indisponível. Informe a posição nos campos X/Y abaixo.</p>;
+  const positioned = position.mapa_x !== "" && position.mapa_y !== "";
+  return <div className="draft-room-position">
+    <p> Clique no centro da sala na planta. Você pode clicar novamente para ajustar antes de salvar.</p>
+    <div className="floor-tools">
+      <span>{floor}</span>
+      <div className="actions">
+        <button type="button" className="quiet" aria-label="Diminuir zoom do cadastro" disabled={zoom <= 1} onClick={() => setZoom(z => Math.max(1, z - .5))}><ZoomOut size={18}/></button>
+        <output aria-label="Zoom do cadastro">{Math.round(zoom * 100)}%</output>
+        <button type="button" className="quiet" aria-label="Aumentar zoom do cadastro" disabled={zoom >= 3} onClick={() => setZoom(z => Math.min(3, z + .5))}><ZoomIn size={18}/></button>
+      </div>
+    </div>
+    <div className="floor-viewport">
+      <div className="floor-image-stage" style={{ width: `${zoom * 100}%`, aspectRatio: ratio, "--plan-ratio": ratio }}>
+        <img className={`floor-plan-image${portrait ? " portrait" : ""}`} src={src} alt={`Posicionar sala — ${floor}`} onError={() => setFailed(true)} onLoad={event => {
+          const { naturalWidth: w, naturalHeight: h } = event.currentTarget;
+          setPortrait(h > w); setRatio(Math.max(w, h) / Math.min(w, h));
+        }}/>
+        <button type="button" className="map-placement-surface" tabIndex={-1} aria-label="Definir posição da sala na planta" onClick={event => {
+          const next = relativePosition(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
+          if (next) onPosition(next);
+        }}/>
+        {positioned && <span className="draft-room-marker" style={{ left: `${position.mapa_x}%`, top: `${position.mapa_y}%` }} aria-hidden="true"/>}
+      </div>
+    </div>
+    <p role="status">{positioned ? "Posição definida. Clique em Salvar para gravar o cadastro." : "Nenhuma posição escolhida. Também é possível preencher X/Y pelo teclado."}</p>
+  </div>;
+}
 function Setup({ kind, value, data, save, close }) {
   const [result, setResult] = useState(null);
   const [setupFloor, setSetupFloor] = useState(normalizeFloor(value?.andar) || value?.andar || FLOORS[0]);
+  const [setupPosition, setSetupPosition] = useState({ mapa_x: value?.mapa_x ?? "", mapa_y: value?.mapa_y ?? "" });
   return (
     <form
       onSubmit={(e) => {
@@ -1154,7 +1185,10 @@ function Setup({ kind, value, data, save, close }) {
             <>
               <label>
                 Andar
-                <select name="andar" required value={setupFloor} onChange={event => setSetupFloor(event.target.value)}>
+                <select name="andar" required value={setupFloor} onChange={event => {
+                  setSetupFloor(event.target.value);
+                  setSetupPosition({ mapa_x: "", mapa_y: "" });
+                }}>
                   {value?.andar && !normalizeFloor(value.andar) && <option value={value.andar}>{value.andar} (atual)</option>}
                   {FLOORS.map(f => <option key={f}>{f}</option>)}
                 </select>
@@ -1170,12 +1204,9 @@ function Setup({ kind, value, data, save, close }) {
                   <option value="outra">Outra</option>
                 </select>
               </label>
-              <p>
-                Centro do quadrado na planta: X/Y em porcentagem (0–100).
-                Deixe ambos vazios para usar um placeholder provisório.
-                Você também pode clicar em Posicionar salas no mapa.
-              </p>
-              <div className="actions" key={setupFloor}>
+              <RoomPositionPicker key={setupFloor} floor={setupFloor} position={setupPosition} onPosition={setSetupPosition}/>
+              <p className="muted">X/Y em porcentagem (0–100). Deixe ambos vazios para posicionar depois.</p>
+              <div className="actions">
                 <label>
                   X na planta (%)
                   <input
@@ -1184,7 +1215,8 @@ function Setup({ kind, value, data, save, close }) {
                     step="0.001"
                     min="0"
                     max="100"
-                    defaultValue={setupFloor === (normalizeFloor(value?.andar) || value?.andar) ? value?.mapa_x ?? "" : ""}
+                    value={setupPosition.mapa_x}
+                    onChange={event => setSetupPosition(p => ({ ...p, mapa_x: event.target.value }))}
                   />
                 </label>
                 <label>
@@ -1195,7 +1227,8 @@ function Setup({ kind, value, data, save, close }) {
                     step="0.001"
                     min="0"
                     max="100"
-                    defaultValue={setupFloor === (normalizeFloor(value?.andar) || value?.andar) ? value?.mapa_y ?? "" : ""}
+                    value={setupPosition.mapa_y}
+                    onChange={event => setSetupPosition(p => ({ ...p, mapa_y: event.target.value }))}
                   />
                 </label>
               </div>
