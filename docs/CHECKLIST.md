@@ -1,4 +1,4 @@
-# Checklist Clack — 04/10/2026
+# Checklist Clack — 07/10/2026
 
 ## Software desenvolvido nesta etapa (validar na bancada)
 - [x] Instalação de banco não destrutiva, configuração fora do Git.
@@ -24,6 +24,14 @@
 - [x] Firmware com OLED, cache offline e fila persistente com confirmação/deduplicação.
 - [x] Modo armário sem servidor/tela, buzzer e um cartão configurado.
 
+- [x] Diagnóstico serial de Wi-Fi/IP, transporte HTTP e comunicação RC522, sem expor senha/token (leitura física do Pelado validada; fluxo consecutivo e revogação em tranca real ainda pendentes).
+
+- [x] Liberar reserva após leitura/cancelamento, recuperar leitura do mesmo operador e permitir cadastro consecutivo pelo painel (API e UI validadas em ambiente descartável).
+- [x] Revogar acesso preservando UID/histórico, inclusive TI global (integração e interface validadas).
+- [ ] Validar fisicamente dois cartões diferentes no novo fluxo consecutivo e a revogação em uma tranca real sincronizada.
+
+- [x] Reiniciar navegação em Ambientes ao sair/entrar e restringir renderização/consulta de Configurações ao administrador (trocas admin/portaria, mesma conta e restrição de Configurações validadas em navegador com API simulada).
+
 ## Prioridade 1 — colocar uma unidade funcionando na bancada
 - [x] Configurar o PlatformIO para usar LittleFS.
 - [ ] Montar ESP32 + RC522 e confirmar os UIDs dos cartões reais.
@@ -35,6 +43,12 @@
 ## Prioridade 2 — instalar servidor e testar o fluxo completo
 - [x] Iniciar Docker no computador do William, configurar .env e validar login/painel.
 - [x] Criar banco persistente e primeiro administrador no Docker.
+- [x] Ajustar MOSI do cadastrador Pelado para GPIO 21, gravar firmware e confirmar resposta RC522 0x92 na COM23.
+- [x] Aplicar exceção TCP 8080 ao bloqueio público do Docker, mantendo as demais portas bloqueadas e liberação restrita à interface Wi-Fi/sub-rede local.
+- [x] Configurar hotspot Clack-Pelado em 2,4 GHz no notebook, preservar conexão UTEC-Invitados, publicar Docker no IP privado e confirmar associação real do ESP32.
+- [x] Configurar início do hotspot ao entrar no Windows (com rede disponível); iniciador executado com sucesso, reinício do Windows ainda não validado.
+- [x] Aplicar regra TCP 8080 restrita ao IP/interface e sub-rede do hotspot; confirmar presença online do Pelado com pedidos reais HTTP 200.
+- [x] Validar captura física de UID pelo RC522 do Pelado, recebido pelo servidor; cartão permanente não cadastrado.
 - [ ] Revisar/importar dados antigos, se necessários.
 - [ ] Cadastrar uma sala, uma tranca e o cadastrador da portaria.
 - [ ] Inicializar LittleFS uma única vez e gravar o firmware completo.

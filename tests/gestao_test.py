@@ -44,11 +44,38 @@ request('dispositivo.php',{'dispositivo':d['id']},401)
 sync(r)
 c=api('capturar',{'dispositivo':r['id']})['captura']
 assert sync(r)['captura']==c
+assert api('capturar',{'dispositivo':r['id']})['captura']==c
+api('cancelar_captura',{'captura':c},403,use_csrf=False)
+api('operador',{'nome':'Outro leitor','login':'outro-leitor','senha':'outro-password-123','papel':'portaria'})
+owner_client,owner_csrf=client,csrf
+client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+csrf=api('login',{'login':'outro-leitor','senha':'outro-password-123'})['csrf']
+api('capturar',{'dispositivo':r['id']},409)
+api('cancelar_captura',{'captura':c},404)
+client,csrf=owner_client,owner_csrf
+api('cancelar_captura',{'captura':c})
+api('cancelar_captura',{'captura':c})
+assert sync(r)['captura'] is None
+api('ler_captura',{'captura':c},410)
+c=api('capturar',{'dispositivo':r['id']})['captura']
 sync(r,{'captura':'0'*32,'uid':'01:02:03:04'},409)
 sync(r,{'captura':c,'uid':'01:02:03:04'})
 assert api('ler_captura',{'captura':c})['uid']=='01:02:03:04'
+# A completed read releases the physical reader while keeping the UID for saving.
+c2=api('capturar',{'dispositivo':r['id']})['captura']
+assert c2!=c and sync(r)['captura']==c2
+sync(r,{'captura':c,'uid':'01:02:03:04'})
+assert sync(r)['captura']==c2
+api('cancelar_captura',{'captura':c2})
 api('cartao',{'nome':'Professor Teste','matricula':'123','externo':False,'perfil':'professor','ativo':True,'salas':[room],'captura':c})
 card=api('painel')['cartoes'][0]
+# Two successive card registrations through the same reader, without waiting.
+c2=api('capturar',{'dispositivo':r['id']})['captura']
+sync(r,{'captura':c2,'uid':'FE:ED:02:03'})
+api('cartao',{'nome':'ZZ Segundo cartão','matricula':'987','perfil':'aluno','salas':[],'captura':c2})
+assert len(api('painel')['cartoes'])==2
+c3=api('capturar',{'dispositivo':r['id']})['captura']
+api('cancelar_captura',{'captura':c3})
 api('cartao',{'nome':'Outro','matricula':'456','perfil':'aluno','salas':[room],'captura':c},400)
 base={'sequencia':0,'estado':'disponivel','responsavel':None,'eventos':[],'versao':''}
 snap=sync(d,base)
@@ -75,6 +102,15 @@ assert command['acao']=='abrir'
 api('comando',{'sala':room,'comando':'fechar'},409)
 assert next(x for x in api('painel')['salas'] if x['id']==room)['estado']=='disponivel'
 sync(d,{**closed,'eventos':[],'comando_confirmado':command['id']})
+api('revogar_cartao',{'id':card['id']},403,use_csrf=False)
+api('revogar_cartao',{'id':card['id']})
+revoked=next(c for c in api('painel')['cartoes'] if c['id']==card['id'])
+assert revoked['uid']==card['uid'] and not revoked['ativo']
+assert not any(p['cartao_id']==card['id'] for p in api('painel')['permissoes'])
+assert sync(d,{**closed,'eventos':[]})['cartoes']==[]
+assert api('historico')['eventos'][0]['nome']=='Professor Teste'
+api('cartao',{**card,'externo':False,'ativo':True,'salas':[room]})
+assert len(sync(d,{**closed,'eventos':[]})['cartoes'])==1
 api('cartao',{**card,'nome':'Nome alterado','externo':False,'ativo':False,'salas':[room]})
 assert sync(d,{**closed,'eventos':[]})['cartoes']==[]
 assert api('historico')['eventos'][0]['nome']=='Professor Teste'
@@ -119,6 +155,11 @@ unchanged=next(x for x in api('painel')['salas'] if x['id']==datacenter)
 assert unchanged['uso_recebido_em']==ti_room['uso_recebido_em'] and unchanged['uso_desde'] is None
 sync(ddc,ti_opened)
 assert next(x for x in api('painel')['salas'] if x['id']==datacenter)['uso_desde'] is None
+# Revocation also removes global TI access, preserving the UID and history.
+api('revogar_cartao',{'id':ti['id']})
+assert sync(dst,base)['cartoes']==[] and sync(ddc,{**ti_opened,'sequencia':2,'eventos':[]})['cartoes']==[]
+api('cartao',{**ti,'externo':False,'ativo':True,'salas':[]})
+assert any(c['id']==ti['id'] for c in sync(dst,base)['cartoes'])
 # Troca de perfil retira o acesso global; não reaproveita a seleção automática.
 api('cartao',{**ti,'perfil':'limpeza','externo':False,'ativo':True,'salas':[datacenter]})
 assert sync(dst,base)['cartoes']==[]

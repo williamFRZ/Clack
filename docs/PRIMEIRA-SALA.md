@@ -61,6 +61,8 @@ Use o IPv4 LAN do computador (consulte `ipconfig` no Windows). Em
 
 Substitua `IP_DO_COMPUTADOR` pelo IP real e ajuste a porta se necessário.
 Não use `localhost` no ESP32. Confira acesso pela mesma rede e firewall.
+Se a rede de convidados isolar aparelhos, use um hotspot de 2,4 GHz do
+próprio notebook e seu IP privado, conforme a alternativa em [DOCKER.md](DOCKER.md#usar-o-hotspot-do-próprio-notebook).
 Consulte [DOCKER.md](DOCKER.md#8-cadastrar-e-gravar-os-dispositivos) e
 [GESTAO.md](GESTAO.md#modos-e-fios) para pinagem, alimentação e gravação.
 Inicialize LittleFS apenas em hardware novo; não repita `uploadfs` em
@@ -92,3 +94,26 @@ tranca sem trocar o responsável. Manutenção/erro aparecem em cinza.
 O estado do painel é lógico; sem sensor, ele não confirma a posição mecânica
 do trinco. Testes físicos, falta de rede e corte/retorno de energia permanecem
 necessários antes de instalar em uma porta real.
+
+### Cadastrar cartões em sequência e revogar acesso
+
+Em **Cartões → Novo cartão**, escolha o cadastrador e clique **Iniciar
+leitura**. Ao receber o UID, o leitor fica disponível para outra leitura;
+o UID recebido permanece disponível por dez minutos para salvar o formulário.
+Use **Salvar e cadastrar outro** para salvar, limpar nome/matrícula e iniciar
+a leitura seguinte, preservando perfil e seleção de salas. Retire a tag
+anterior do RC522 antes de aproximar a seguinte.
+
+**Cancelar leitura** ou fechar o formulário libera a captura daquela tela.
+Se a tela for interrompida antes de cancelar, o mesmo operador pode recuperar
+a leitura em andamento; outro operador aguarda a conclusão ou o prazo de dois
+minutos. **Ler outro cartão** descarta a captura atual e inicia uma nova.
+
+Para retirar o acesso sem perder o vínculo físico, abra **Cartões → Editar →
+Revogar acesso**. O cartão fica inativo e perde as permissões, inclusive o
+acesso global da TI; UID, pessoa e histórico são preservados. **Desvincular
+cartão** também remove o UID, permitindo reutilizar a tag em outro cadastro.
+As trancas aplicam a revogação ao sincronizar com o servidor; uma tranca
+offline pode continuar usando o cache antigo até reconectar.
+
+Todo novo login abre em **Ambientes**, mesmo após sair de outra aba ou trocar de usuário. **Configurações** é exibida e consultada apenas por administradores.

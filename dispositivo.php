@@ -8,12 +8,14 @@ $d=one('SELECT * FROM dispositivos WHERE id=? AND ativo=1 FOR UPDATE',[$did]);
 if(!$d||!hash_equals($d['token_hash'],hash('sha256',substr($token,7)))) fail('Credencial inválida.',401);
 q('UPDATE dispositivos SET ultima_conexao=UTC_TIMESTAMP() WHERE id=?',[$did]);
 if($d['tipo']==='cadastrador') {
- $capture=one('SELECT * FROM capturas WHERE dispositivo_id=? AND consumida=0 AND expira_em>UTC_TIMESTAMP() ORDER BY expira_em DESC LIMIT 1 FOR UPDATE',[$did]);
+ $capture=one('SELECT * FROM capturas WHERE dispositivo_id=? AND consumida=0 AND uid IS NULL AND expira_em>UTC_TIMESTAMP() ORDER BY expira_em DESC LIMIT 1 FOR UPDATE',[$did]);
  if(isset($b['uid'])) {
   $uid=txt($b,'uid',32); if(!uid_valid($uid)) fail('UID inválido.');
-  if(!$capture || !hash_equals($capture['id'],$b['captura']??'')) fail('Captura expirada.',409);
+  $delivery=one('SELECT * FROM capturas WHERE id=? AND dispositivo_id=? AND consumida=0 AND expira_em>UTC_TIMESTAMP() FOR UPDATE',[txt($b,'captura',32),$did]);
+  if(!$delivery || (!$delivery['uid'] && (!$capture || !hash_equals($capture['id'],$delivery['id'])))) fail('Captura expirada.',409);
+  $capture=$delivery;
   if($capture['uid'] && $capture['uid']!==$uid) fail('Cartão já capturado.',409);
-  q('UPDATE capturas SET uid=? WHERE id=?',[$uid,$capture['id']]);
+  q('UPDATE capturas SET uid=?,expira_em=UTC_TIMESTAMP()+INTERVAL 10 MINUTE WHERE id=?',[$uid,$capture['id']]);
  }
  $conexao->commit(); resposta_json(['captura'=>$capture&&!$capture['uid']?$capture['id']:null]);
 }

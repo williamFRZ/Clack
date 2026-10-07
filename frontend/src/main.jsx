@@ -73,9 +73,21 @@ function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("clack-theme", theme);
   }, [theme]);
+  const resetNavigation = () => {
+    setTab("salas");
+    setModal(null);
+    setOperators([]);
+    setNotice("");
+    setHistory({ eventos: [], auditoria: [] });
+    setFilter("");
+  };
   const report = (e) => {
     setError(e.message);
-    if (e.status === 401) setOp(null);
+    if (e.status === 401) {
+      csrf = "";
+      resetNavigation();
+      setOp(null);
+    }
   };
   const refresh = async () => {
     try {
@@ -106,7 +118,7 @@ function App() {
       api(`historico${filter ? "&sala=" + filter : ""}`)
         .then(setHistory)
         .catch(report);
-    if (op && tab === "admin")
+    if (op?.papel === "admin" && tab === "admin")
       api("operadores")
         .then((d) => setOperators(d.operadores))
         .catch(report);
@@ -146,6 +158,7 @@ function App() {
             try {
               const s = await api("login", Object.fromEntries(f));
               csrf = s.csrf;
+              resetNavigation();
               setOp(s.operador);
             } catch (e) {
               report(e);
@@ -228,6 +241,7 @@ function App() {
               api("logout", {})
                 .then(() => {
                   csrf = "";
+                  resetNavigation();
                   setOp(null);
                 })
                 .catch(report)
@@ -480,7 +494,7 @@ function App() {
             </section>
           </>
         )}
-        {tab === "admin" && (
+        {tab === "admin" && op.papel === "admin" && (
           <>
             <section className="panel">
               <div className="toolbar">
@@ -847,28 +861,66 @@ function Card({ value, data, save, report, close }) {
     ),
     [capture, setCapture] = useState(""),
     [uid, setUid] = useState("");
+  const [busy, setBusy] = useState(false);
+  const captureRef = useRef("");
+  const mounted = useRef(true);
   useEffect(() => {
-    if (!capture) return;
-    const t = setInterval(
-      () =>
-        api("ler_captura", { captura: capture })
-          .then((d) => setUid(d.uid || ""))
-          .catch((e) => {
-            report(e);
-            setCapture("");
-          }),
-      1000,
-    );
-    return () => clearInterval(t);
-  }, [capture]);
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (captureRef.current) api("cancelar_captura", { captura: captureRef.current }).catch(() => {});
+    };
+  }, []);
+  const clearCapture = () => {
+    captureRef.current = "";
+    setCapture("");
+    setUid("");
+  };
+  const cancelReading = async () => {
+    if (captureRef.current) await api("cancelar_captura", { captura: captureRef.current });
+    clearCapture();
+  };
+  const beginReading = async () => {
+    setBusy(true);
+    try {
+      await cancelReading();
+      const d = await api("capturar", { dispositivo: reader });
+      if (!mounted.current) {
+        await api("cancelar_captura", { captura: d.captura });
+        return;
+      }
+      captureRef.current = d.captura;
+      setCapture(d.captura);
+    } finally { if (mounted.current) setBusy(false); }
+  };
+  useEffect(() => {
+    if (!capture || uid) return;
+    let active = true;
+    const t = setInterval(() => {
+      api("ler_captura", { captura: capture })
+        .then((d) => { if (active) setUid(d.uid || ""); })
+        .catch((e) => {
+          if (active) { report(e); clearCapture(); }
+        });
+    }, 1000);
+    return () => { active = false; clearInterval(t); };
+  }, [capture, uid]);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   return (
     <form
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
-        save("cartao", { ...form, ...(capture ? { captura: capture } : {}) })
-          .then(close)
-          .catch(() => {});
+        const next = e.nativeEvent.submitter?.value === "next";
+        setBusy(true);
+        try {
+          await save("cartao", { ...form, ...(capture ? { captura: capture } : {}) });
+          clearCapture();
+          if (next) {
+            setForm((f) => ({ ...f, nome: "", matricula: "", ativo: true }));
+            await beginReading();
+          } else close();
+        } catch (e) { report(e); }
+        finally { if (mounted.current) setBusy(false); }
       }}
     >
       <h2>{value ? "Editar cartão" : "Cadastrar cartão"}</h2>
@@ -987,6 +1039,7 @@ function Card({ value, data, save, report, close }) {
         <legend>Leitura na portaria</legend>
         <select
           aria-label="Cadastrador"
+          disabled={busy || !!capture}
           value={reader}
           onChange={(e) => setReader(Number(e.target.value))}
         >
@@ -1002,15 +1055,12 @@ function Card({ value, data, save, report, close }) {
         <button
           type="button"
           className="secondary"
-          disabled={!reader || !!capture}
-          onClick={() =>
-            api("capturar", { dispositivo: reader })
-              .then((d) => setCapture(d.captura))
-              .catch(report)
-          }
+          disabled={!reader || busy || (!!capture && !uid)}
+          onClick={() => beginReading().catch(report)}
         >
-          Iniciar leitura
+          {uid ? "Ler outro cartão" : "Iniciar leitura"}
         </button>
+        {capture && <button type="button" className="quiet" disabled={busy} onClick={() => cancelReading().catch(report)}>Cancelar leitura</button>}
         <p>
           {uid
             ? "Cartão lido: " + uid
@@ -1020,7 +1070,14 @@ function Card({ value, data, save, report, close }) {
         </p>
       </fieldset>
       <div className="actions">
-        <button disabled={!!capture && !uid}>Salvar cadastro</button>
+        <button disabled={busy || (!!capture && !uid)}>Salvar cadastro</button>
+        {!value && <button value="next" disabled={busy || !reader || !uid}>Salvar e cadastrar outro</button>}
+        {value && Number(value.ativo) === 1 && (
+          <button type="button" className="danger" disabled={busy} onClick={() => {
+            if (confirm("Revogar todo o acesso deste cartão? O UID e o histórico serão preservados. As trancas aplicam a alteração ao sincronizar."))
+              save("revogar_cartao", { id: value.id }).then(close).catch(() => {});
+          }}>Revogar acesso</button>
+        )}
         {value && (
           <button
             type="button"

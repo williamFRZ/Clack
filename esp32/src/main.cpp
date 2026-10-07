@@ -18,6 +18,10 @@
 #error "Copie config.example.h para config.local.h e configure o dispositivo."
 #endif
 
+#ifndef RFID_MOSI_PIN
+#define RFID_MOSI_PIN 23
+#endif
+
 MFRC522 rfid(5,RFID_RST_PIN);
 Servo servo;
 Adafruit_SSD1306 oled(128,64,&Wire,-1);
@@ -26,6 +30,7 @@ bool healthy=false,displayReady=false;
 int slot=-1;
 unsigned long lastSync=0,lastWifi=0,lastRead=0,lastSeen=0;
 String heldUid,capture;
+wl_status_t lastWifiStatus=WL_NO_SHIELD;
 constexpr int MAX_EVENTS=64;
 
 void screen(const String& title,const String& detail="") {
@@ -116,7 +121,7 @@ void syncServer(){
  String payload;serializeJson(req,payload);HTTPClient http;http.setConnectTimeout(1500);http.setTimeout(1500);http.begin(SERVER_URL);
  http.addHeader("Authorization",String("Bearer ")+DEVICE_TOKEN);http.addHeader("Content-Type","application/json");
  int code=http.POST(payload);String body=code==200?http.getString():"";http.end();
- if(code!=200){Serial.printf("Sync falhou: %d\n",code);return;}
+ if(code!=200){Serial.printf("Sync falhou: HTTP %d%s%s\n",code,code<0?" - ":"",code<0?HTTPClient::errorToString(code).c_str():"");return;}
  JsonDocument response;if(deserializeJson(response,body))return;
  if(DEVICE_MODE==1){capture=response["captura"].as<String>();if(capture=="null")capture="";screen(capture.isEmpty()?"Cadastrador pronto":"Aproxime o cartao");return;}
  if(!response["confirmados"].is<JsonArray>()||!response["cartoes"].is<JsonArray>()||!response["versao"].is<const char*>())return;
@@ -141,9 +146,15 @@ void syncServer(){
  finishMotion(action=="abrir");screen("Comando da portaria",action);
 }
 void setup(){
- Serial.begin(115200);pinMode(BUZZER_PIN,OUTPUT);digitalWrite(BUZZER_PIN,LOW);
+ Serial.begin(115200);
+ Serial.printf("Clack: modo=%d dispositivo=%d\n",DEVICE_MODE,DEVICE_ID);
+ if(DEVICE_MODE!=2)Serial.printf("Servidor: %s\n",SERVER_URL);
+ pinMode(BUZZER_PIN,OUTPUT);digitalWrite(BUZZER_PIN,LOW);
  if(OLED_ENABLED&&DEVICE_MODE!=2){Wire.begin(21,22);displayReady=oled.begin(SSD1306_SWITCHCAPVCC,0x3C);}
- SPI.begin(18,19,23,5);rfid.PCD_Init();screen("Inicializando...");
+ SPI.begin(18,19,RFID_MOSI_PIN,5);rfid.PCD_Init();screen("Inicializando...");
+ byte rfidVersion=rfid.PCD_ReadRegister(MFRC522::VersionReg);
+ Serial.printf("RC522: versao 0x%02X\n",rfidVersion);
+ if(rfidVersion==0||rfidVersion==255)Serial.printf("RC522 sem resposta: confira 3,3 V, GND, SS=5, SCK=18, MISO=19, MOSI=%d e RST=%d.\n",RFID_MOSI_PIN,RFID_RST_PIN);
  if(DEVICE_MODE!=1){
   if(!LittleFS.begin(false)){screen("LittleFS indisponivel","Veja README");}
   else{
@@ -166,6 +177,11 @@ void setup(){
 void loop(){
  unsigned long now=millis();
  if(DEVICE_MODE!=2){
+  wl_status_t wifiStatus=WiFi.status();
+  if(wifiStatus!=lastWifiStatus){
+   lastWifiStatus=wifiStatus;Serial.printf("WiFi: estado %d (3=conectado, 1=SSID ausente, 4=falha de conexao, 6=desconectado)\n",(int)wifiStatus);
+   if(wifiStatus==WL_CONNECTED)Serial.printf("WiFi conectado: IP=%s gateway=%s RSSI=%d dBm\n",WiFi.localIP().toString().c_str(),WiFi.gatewayIP().toString().c_str(),WiFi.RSSI());
+  }
   if(WiFi.status()!=WL_CONNECTED&&now-lastWifi>=10000){WiFi.begin(WIFI_SSID,WIFI_PASSWORD);lastWifi=now;}
   if(now-lastSync>=2000)syncServer();
  }

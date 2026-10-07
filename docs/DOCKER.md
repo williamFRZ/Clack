@@ -377,3 +377,74 @@ ESP32 e navegação do painel. Esses testes não substituem a validação físic
 
 Consulte [GESTAO.md](GESTAO.md) para instalação sem Docker, pinagem e regras;
 [CHECKLIST.md](CHECKLIST.md) para pendências do protótipo.
+
+### Diagnosticar um cadastrador offline
+
+Abra o monitor serial a 115200 baud. O firmware informa modo/ID, endereço do
+servidor, estado do Wi-Fi, IP/gateway e versão do RC522, sem imprimir senha ou
+token. Para cadastrador use `DEVICE_MODE=1`. HTTP negativo indica falha de
+transporte; 401 indica identidade/token recusados. Confirme acesso de rede ao
+notebook e a porta do Docker. Redes de convidados podem isolar os aparelhos.
+RC522 com versão `0x00` ou `0xFF` não responde: confira alimentação em 3,3 V,
+GND comum e a pinagem SPI do guia; isso é separado da presença online.
+Não teste presença enviando pedidos pelo computador em nome do ESP32: confira
+conexões originadas no hardware. Atualize com `upload`, preservando LittleFS.
+
+O MOSI usa GPIO 23 por padrão e pode ser ajustado em `RFID_MOSI_PIN`.
+Se o leitor usar GPIO 21 para MOSI, configure `OLED_ENABLED=0`: o OLED do
+guia usa esse mesmo pino como SDA e não pode compartilhar essa ligação.
+
+### Usar o hotspot do próprio notebook
+
+Se a rede de convidados bloquear comunicação entre aparelhos, o Windows pode
+criar um **Hotspot móvel** em 2,4 GHz para o ESP32, mantendo o notebook na rede
+com internet. Verifique primeiro se o adaptador suporta essa função.
+
+1. Em Configurações → Rede e Internet → Hotspot móvel, compartilhe a conexão
+   Wi-Fi, escolha a banda 2,4 GHz e configure nome/senha da rede local.
+2. Ligue o hotspot e consulte seu IPv4 com `ipconfig`. O Windows normalmente
+   usa `192.168.137.1`; confira o endereço efetivo antes de configurá-lo.
+3. Defina `CLACK_BIND_IP` no `.env` como esse IP privado. Para manter o painel
+   também em localhost, use um `compose.override.yaml` local com:
+
+   ```yaml
+   services:
+     web:
+       ports:
+         - "127.0.0.1:8080:80"
+   ```
+
+   Mantenha esse arquivo fora do Git e aplique `docker compose up -d --wait`.
+4. Configure no ESP32 o SSID/senha do hotspot e
+   `SERVER_URL="http://IP_DO_HOTSPOT:8080/dispositivo.php"`, mantendo ID/token.
+5. No firewall do Windows, permita TCP 8080 apenas no IP/interface do hotspot,
+   com origem na sub-rede do hotspot. Uma regra explícita de bloqueio pode
+   prevalecer sobre a liberação; revise apenas o bloqueio identificado.
+6. Confirme pedidos reais do ESP32 e presença online no painel. Inicie uma
+   captura em Cartões e aproxime um cartão para validar o RC522 fisicamente.
+
+O hotspot precisa permanecer ligado durante o uso do dispositivo. O Clack
+usa comunicação local; o cadastrador não precisa acessar a internet.
+
+### Cadastrar cartões em sequência e revogar acesso
+
+Em **Cartões → Novo cartão**, escolha o cadastrador e clique **Iniciar
+leitura**. Ao receber o UID, o leitor fica disponível para outra leitura;
+o UID recebido permanece disponível por dez minutos para salvar o formulário.
+Use **Salvar e cadastrar outro** para salvar, limpar nome/matrícula e iniciar
+a leitura seguinte, preservando perfil e seleção de salas. Retire a tag
+anterior do RC522 antes de aproximar a seguinte.
+
+**Cancelar leitura** ou fechar o formulário libera a captura daquela tela.
+Se a tela for interrompida antes de cancelar, o mesmo operador pode recuperar
+a leitura em andamento; outro operador aguarda a conclusão ou o prazo de dois
+minutos. **Ler outro cartão** descarta a captura atual e inicia uma nova.
+
+Para retirar o acesso sem perder o vínculo físico, abra **Cartões → Editar →
+Revogar acesso**. O cartão fica inativo e perde as permissões, inclusive o
+acesso global da TI; UID, pessoa e histórico são preservados. **Desvincular
+cartão** também remove o UID, permitindo reutilizar a tag em outro cadastro.
+As trancas aplicam a revogação ao sincronizar com o servidor; uma tranca
+offline pode continuar usando o cache antigo até reconectar.
+
+Todo novo login abre em **Ambientes**, mesmo após sair de outra aba ou trocar de usuário. **Configurações** é exibida e consultada apenas por administradores.

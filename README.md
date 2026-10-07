@@ -42,6 +42,10 @@ Siga **[instalação e funcionamento](docs/GESTAO.md)**. Requisitos: PHP 8.2 com
 4. Cadastre ambientes/dispositivos e configure `esp32/include/config.local.h` com o IP LAN do servidor, ID e token do dispositivo.
 5. Inicialize LittleFS somente na primeira instalação e grave o firmware conforme o guia.
 
+O monitor serial informa rede/IP, falhas HTTP e comunicação com o RC522. MOSI
+é configurável por `RFID_MOSI_PIN` (padrão GPIO 23); veja as instruções de
+diagnóstico e compatibilidade com OLED em [GESTAO.md](docs/GESTAO.md).
+
 **Atualize servidor e firmware juntos.** APIs antigas foram desativadas. As tabelas anteriores são preservadas; revise e cadastre as permissões na nova gestão. Não execute `uploadfs` sobre um dispositivo em uso: isso apaga sua fila e permissões locais.
 
 ## Recursos desta versão
@@ -73,3 +77,9 @@ O workflow `.github/workflows/verify.yml` verifica PHP/MySQL com banco descartá
 [Checklist e orçamento](docs/CHECKLIST.md) · [Regras, pinagem e limitações](docs/GESTAO.md)
 
 Para atualizar instalações existentes ao banco versão 3 sem Docker, execute `php bin/configurar.php` antes de abrir o novo painel. Com Docker, a migração roda na inicialização. [Guia para atualizar e integrar branches com segurança](docs/BRANCHES.md).
+
+Para um ESP32 offline em rede de convidados, consulte o [diagnóstico e a alternativa de hotspot do próprio notebook](docs/DOCKER.md#diagnosticar-um-cadastrador-offline). O monitor serial diferencia falhas de Wi-Fi/HTTP de falhas do RC522; `RFID_MOSI_PIN` permite ajustar o MOSI à ligação real.
+
+O painel permite **Salvar e cadastrar outro**, cancelar/repetir leituras e **Revogar acesso** preservando UID e histórico. Consulte o [fluxo de cartões](docs/GESTAO.md#cadastrar-cartões-em-sequência-e-revogar-acesso).
+
+Todo novo login abre em **Ambientes**, mesmo após sair de outra aba ou trocar de usuário. **Configurações** é exibida e consultada apenas por administradores.

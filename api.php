@@ -84,6 +84,10 @@ case 'cartao':
  $permissionIds=$perfil==='ti'?[]:$roomIds;
  q('DELETE FROM permissoes WHERE cartao_id=?',[$cid]); foreach($permissionIds as $rid) q('INSERT INTO permissoes VALUES(?,?)',[$cid,$rid]);
  audit($op,'cartao_salvo',['id'=>$cid,'perfil'=>$perfil,'salas'=>$permissionIds,'acesso_global'=>$perfil==='ti','ativo'=>$active]); break;
+case 'revogar_cartao':
+ $cid=id($b); if(!one('SELECT id FROM cartoes WHERE id=? FOR UPDATE',[$cid])) fail('Cartão não encontrado.',404);
+ q('UPDATE cartoes SET ativo=0 WHERE id=?',[$cid]); q('DELETE FROM permissoes WHERE cartao_id=?',[$cid]);
+ audit($op,'acesso_cartao_revogado',['id'=>$cid]); break;
 case 'resetar_cartao':
  $cid=id($b); if(!one('SELECT id FROM cartoes WHERE id=? FOR UPDATE',[$cid])) fail('Cartão não encontrado.',404);
  q('UPDATE cartoes SET uid=NULL,ativo=0 WHERE id=?',[$cid]); q('DELETE FROM permissoes WHERE cartao_id=?',[$cid]);
@@ -118,9 +122,19 @@ case 'comando':
 case 'capturar':
  $did=id($b,'dispositivo');
  if(!one("SELECT id FROM dispositivos WHERE id=? AND tipo='cadastrador' AND ativo=1 AND ultima_conexao>UTC_TIMESTAMP()-INTERVAL 20 SECOND FOR UPDATE",[$did])) fail('Cadastrador offline.',409);
- if(one('SELECT id FROM capturas WHERE dispositivo_id=? AND consumida=0 AND expira_em>UTC_TIMESTAMP()',[$did])) fail('Cadastrador já reservado. Aguarde até dois minutos.',409);
+ $reserved=one('SELECT id,operador_id FROM capturas WHERE dispositivo_id=? AND consumida=0 AND uid IS NULL AND expira_em>UTC_TIMESTAMP() FOR UPDATE',[$did]);
+ if($reserved) {
+  if((int)$reserved['operador_id']!==(int)$op['id']) fail('Cadastrador em uso por outro operador. Aguarde a leitura terminar.',409);
+  $conexao->commit(); resposta_json(['captura'=>$reserved['id']]);
+ }
  $capture=bin2hex(random_bytes(16)); q('INSERT INTO capturas(id,operador_id,dispositivo_id,expira_em) VALUES(?,?,?,UTC_TIMESTAMP()+INTERVAL 2 MINUTE)',[$capture,$op['id'],$did]);
  $conexao->commit(); resposta_json(['captura'=>$capture]);
+case 'cancelar_captura':
+ $captureId=txt($b,'captura',32);
+ $capture=one('SELECT dispositivo_id FROM capturas WHERE id=? AND operador_id=?',[$captureId,$op['id']]);
+ if(!$capture) fail('Captura não encontrada.',404);
+ one('SELECT id FROM dispositivos WHERE id=? FOR UPDATE',[$capture['dispositivo_id']]);
+ q('UPDATE capturas SET consumida=1 WHERE id=? AND operador_id=?',[$captureId,$op['id']]); break;
 case 'ler_captura':
  $capture=one('SELECT uid,expira_em FROM capturas WHERE id=? AND operador_id=? AND consumida=0 AND expira_em>UTC_TIMESTAMP()',[txt($b,'captura',32),$op['id']]);
  if(!$capture) fail('Captura expirada. Inicie outra.',410); $conexao->commit(); resposta_json($capture);

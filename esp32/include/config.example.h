@@ -7,6 +7,7 @@
 // 0: tranca completa; 1: cadastrador; 2: armario offline.
 #define DEVICE_MODE 0
 #define RFID_RST_PIN 27
+#define RFID_MOSI_PIN 23
 #define SERVO_PIN 4
 #define SERVO_FECHADO 180
 #define SERVO_ABERTO 0
