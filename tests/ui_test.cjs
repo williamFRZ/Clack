@@ -9,6 +9,7 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
   });
   let logged = false;
   let savedRoom = null;
+  const historyRequests = [];
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   const sample = {
@@ -22,6 +23,7 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
         y: 100,
         estado: "disponivel",
         online: 1,
+        ultimo_usuario_nome: "Última Pessoa",
         dispositivo_id: 1,
         mapa_x: 43,
         mapa_y: 84,
@@ -99,7 +101,10 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
       sample.salas.push({ ...savedRoom, id: 99, estado: "disponivel", online: 0 });
       data = { ok: true };
     }
-    else if (action === "historico") data = { eventos: [], auditoria: [] };
+    else if (action === "historico") {
+      historyRequests.push(new URL(r.request().url()).searchParams);
+      data = { eventos: [], auditoria: [{ id: 1, operador: "Operador teste", acao: "comando_enviado", criado_em: "2026-10-14 12:00:00" }] };
+    }
     else if (action === "operadores") data = { operadores: [] };
     await r.fulfill({
       status,
@@ -138,6 +143,12 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
   await page.locator('[data-room-id="2"]').click();
   await page.getByRole("dialog").getByText("012345", { exact: true }).waitFor();
   await page.getByRole("dialog").getByRole("button", { name: "Fechar", exact: true }).click();
+  await page.locator('[data-room-id="1"]').click();
+  const availableDialog = page.getByRole("dialog");
+  const lastUser = availableDialog.getByText("Último usuário: Última Pessoa", { exact: true });
+  await lastUser.waitFor();
+  if (!(await lastUser.getAttribute("class")).includes("last-room-user")) throw Error("Último usuário sem destaque laranja");
+  await availableDialog.getByRole("button", { name: "Fechar", exact: true }).click();
   await page.getByRole("button",{name:"Aumentar zoom",exact:true}).click();
   if((await page.getByLabel("Nível de zoom",{exact:true}).textContent())!=="150%") throw Error("Zoom inválido");
   await page.getByRole("button",{name:"Ajustar",exact:true}).click();
@@ -163,6 +174,7 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
   if ((await page.locator("html").getAttribute("data-theme")) !== "dark")
     throw Error("Theme failed");
   await page.getByRole("button", { name: "Cartões", exact: true }).click();
+  await page.getByRole("heading", { name: "Cartões ativos", exact: true }).waitFor();
   await page.getByRole("button", { name: "Novo cartão" }).click();
   await page.getByLabel("Perfil", { exact: true }).selectOption("ti");
   if (await page.locator(".room-options input:not(:checked)").count() || await page.locator(".room-options input:not(:disabled)").count()) throw Error("TI não tem acesso global no formulário");
@@ -199,6 +211,28 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
   await dialog.getByRole("button", { name: "Salvar", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
   if (savedRoom?.andar !== "Andar 3" || Math.abs(savedRoom.mapa_x - 60) > .5 || Math.abs(savedRoom.mapa_y - 40) > .5) throw Error("Cadastro não envia coordenadas com zoom");
+  await page.getByRole("button", { name: "Histórico", exact: true }).click();
+  await page.getByRole("tab", { name: "Eventos dos dispositivos", exact: true }).waitFor();
+  await page.getByRole("tab", { name: "Ações da portaria", exact: true }).click();
+  await page.getByRole("tabpanel", { name: "Ações da portaria", exact: true }).waitFor();
+  await page.getByText("Operador teste", { exact: true }).waitFor();
+  await page.getByRole("tab", { name: "Eventos dos dispositivos", exact: true }).click();
+  await page.getByLabel("Filtrar sala", { exact: true }).selectOption("2");
+  const filteredHistory = page.waitForResponse((r) => {
+    const url = new URL(r.url());
+    return url.searchParams.get("acao") === "historico" && url.searchParams.has("inicio");
+  });
+  await page.getByLabel("Filtrar por dia", { exact: true }).fill("2026-10-14");
+  await filteredHistory;
+  const dayRequest = historyRequests.at(-1);
+  if (dayRequest.get("sala") !== "2" || !dayRequest.get("inicio") || !dayRequest.get("fim") || dayRequest.get("fim") <= dayRequest.get("inicio")) throw Error("Filtro por dia não preserva a sala ou o intervalo");
+  const generalHistory = page.waitForResponse((r) => {
+    const url = new URL(r.url());
+    return url.searchParams.get("acao") === "historico" && url.searchParams.get("sala") === "2" && !url.searchParams.has("inicio");
+  });
+  await page.getByRole("button", { name: "Todas as atividades", exact: true }).click();
+  await generalHistory;
+  if (historyRequests.at(-1).get("sala") !== "2" || historyRequests.at(-1).has("inicio") || historyRequests.at(-1).has("fim")) throw Error("Voltar às atividades gerais não preserva apenas o filtro de sala");
   if (errors.length) throw Error(errors.join("\n"));
   console.log(
     "UI: login, andares, cores, mouse/teclado/toque, matrícula, horário, posicionamento, TI global, tema e largura móvel OK (API simulada).",

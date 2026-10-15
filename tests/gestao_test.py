@@ -1,5 +1,7 @@
 """Integration against a disposable MySQL database and PHP HTTP server."""
 import json, os, urllib.request, urllib.error, http.cookiejar
+from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 BASE=os.environ.get('CLACK_TEST_URL', 'http://127.0.0.1:8080/').rstrip('/')+'/'
 jar=http.cookiejar.CookieJar()
 client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
@@ -93,9 +95,19 @@ sync(d,opened)
 assert len(api('historico')['eventos'])==1
 closed={**base,'sequencia':2,'eventos':[{**e,'sequencia':2,'resultado':'atividade_encerrada'}]}
 sync(d,closed);sync(d,opened)
-assert next(x for x in api('painel')['salas'] if x['id']==room)['estado']=='disponivel'
-assert next(x for x in api('painel')['salas'] if x['id']==room)['uso_desde'] is None
+available_room=next(x for x in api('painel')['salas'] if x['id']==room)
+assert available_room['estado']=='disponivel'
+assert available_room['uso_desde'] is None
+assert available_room['ultimo_usuario_nome']=='Professor Teste'
 assert len(api('historico')['eventos'])==2
+day_query='historico&inicio=2025-01-01%2000%3A00%3A00&fim=2025-01-02%2000%3A00%3A00'
+assert len(api(day_query)['eventos'])==2
+assert len(api(day_query+'&sala='+str(room))['eventos'])==2
+api('historico&inicio=2025-02-30%2000%3A00%3A00&fim=2025-03-01%2000%3A00%3A00',None,400)
+today=datetime.now(timezone.utc).replace(hour=0,minute=0,second=0,microsecond=0)
+tomorrow=today+timedelta(days=1)
+audit_query='historico&inicio='+quote(today.strftime('%Y-%m-%d %H:%M:%S'))+'&fim='+quote(tomorrow.strftime('%Y-%m-%d %H:%M:%S'))
+assert api(audit_query)['auditoria']
 api('comando',{'sala':room,'comando':'abrir'})
 command=sync(d,{**closed,'eventos':[]})['comando']
 assert command['acao']=='abrir'

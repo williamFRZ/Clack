@@ -24,6 +24,9 @@ if($action==='painel') {
  CASE WHEN a.estado='em_uso' THEN COALESCE(e.perfil,c.perfil) ELSE NULL END responsavel_perfil,
  CASE WHEN a.estado='em_uso' AND e.resultado IN ('atividade_iniciada','responsabilidade_transferida','portaria_abrir') THEN e.ocorrido_em ELSE NULL END uso_desde,
  CASE WHEN a.estado='em_uso' AND e.resultado IN ('atividade_iniciada','responsabilidade_transferida','portaria_abrir') THEN e.recebido_em ELSE NULL END uso_recebido_em,
+ CASE WHEN a.estado='disponivel' THEN (SELECT ev.nome FROM eventos ev WHERE ev.ambiente_id=a.id
+ AND ev.resultado IN ('atividade_iniciada','responsabilidade_transferida','atividade_encerrada')
+ AND ev.nome IS NOT NULL AND ev.nome<>'' ORDER BY ev.id DESC LIMIT 1) ELSE NULL END ultimo_usuario_nome,
  d.id dispositivo_id,d.ultima_conexao,d.versao,IF(d.ultima_conexao>UTC_TIMESTAMP()-INTERVAL 20 SECOND,1,0) online
  FROM ambientes a LEFT JOIN cartoes c ON c.id=a.responsavel
  LEFT JOIN dispositivos d ON d.ambiente_id=a.id AND d.ativo=1
@@ -36,11 +39,20 @@ if($action==='painel') {
  'comandos'=>rows('SELECT c.*,o.nome operador FROM comandos c JOIN operadores o ON o.id=c.operador_id ORDER BY c.id DESC LIMIT 50')]);
 }
 if($action==='historico') {
- exigir_metodo('GET'); $params=[]; $where='WHERE 1=1';
+ exigir_metodo('GET'); $params=[]; $where='WHERE 1=1'; $auditWhere=''; $auditParams=[];
  if(!empty($_GET['sala'])) { $where.=' AND e.ambiente_id=?'; $params[]=id($_GET,'sala'); }
  if(!empty($_GET['antes'])) { $where.=' AND e.id<?'; $params[]=id($_GET,'antes'); }
+ if(isset($_GET['inicio']) || isset($_GET['fim'])) {
+  $inicio=$_GET['inicio']??null; $fim=$_GET['fim']??null;
+  $format='Y-m-d H:i:s'; $utc=new DateTimeZone('UTC');
+  $inicioData=is_string($inicio)?DateTimeImmutable::createFromFormat('!'.$format,$inicio,$utc):false;
+  $fimData=is_string($fim)?DateTimeImmutable::createFromFormat('!'.$format,$fim,$utc):false;
+  if(!$inicioData||!$fimData||$inicioData->format($format)!==$inicio||$fimData->format($format)!==$fim||$fimData<=$inicioData) fail('Intervalo de data inválido.',400);
+  $where.=' AND e.ocorrido_em>=? AND e.ocorrido_em<?'; $params[]=$inicio; $params[]=$fim;
+  $auditWhere='WHERE a.criado_em>=? AND a.criado_em<?'; $auditParams=[$inicio,$fim];
+ }
  resposta_json(['eventos'=>rows('SELECT e.*,a.nome sala FROM eventos e JOIN ambientes a ON a.id=e.ambiente_id '.$where.' ORDER BY e.id DESC LIMIT 100',$params),
- 'auditoria'=>rows('SELECT a.*,o.nome operador FROM auditoria a JOIN operadores o ON o.id=a.operador_id ORDER BY a.id DESC LIMIT 100')]);
+ 'auditoria'=>rows('SELECT a.*,o.nome operador FROM auditoria a JOIN operadores o ON o.id=a.operador_id '.$auditWhere.' ORDER BY a.id DESC LIMIT 100',$auditParams)]);
 }
 if($action==='operadores') {
  operator(true); exigir_metodo('GET'); resposta_json(['operadores'=>rows('SELECT id,nome,login,papel,ativo FROM operadores ORDER BY nome')]);

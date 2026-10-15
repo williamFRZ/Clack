@@ -21,6 +21,8 @@
 - [x] Docker Compose com build do painel, Apache/PHP, MySQL e volumes persistentes.
 - [x] Tutorial completo de instalação/uso com Docker, rede do ESP32, atualização e backup/restauração.
 - [x] Histórico com snapshots, ocorrência/recebimento e filtro por sala.
+- [x] Histórico: abas de eventos dos dispositivos e ações da portaria, filtro por dia nas duas listas e filtro por sala nos eventos; retorno ao período geral (API e build de produção validados em ambiente descartável; teste de navegação atualizado).
+- [x] Mostrar em laranja o último usuário da sala disponível, com nome recuperado do evento de atividade mais recente (consulta validada por integração; build de produção concluído; teste de interface atualizado).
 - [x] Firmware com OLED, cache offline e fila persistente com confirmação/deduplicação.
 - [x] Modo armário sem servidor/tela, buzzer e um cartão configurado.
 
@@ -48,14 +50,15 @@
 - [x] Aplicar exceção TCP 8080 ao bloqueio público do Docker, mantendo as demais portas bloqueadas e liberação restrita à interface Wi-Fi/sub-rede local.
 - [x] Configurar hotspot Clack-Pelado em 2,4 GHz no notebook, preservar conexão UTEC-Invitados, publicar Docker no IP privado e confirmar associação real do ESP32.
 - [x] Configurar início do hotspot ao entrar no Windows (com rede disponível); iniciador executado com sucesso, reinício do Windows ainda não validado.
-- [x] Aplicar regra TCP 8080 restrita ao IP/interface e sub-rede do hotspot; confirmar presença online do Pelado com pedidos reais HTTP 200.
-- [x] Validar captura física de UID pelo RC522 do Pelado, recebido pelo servidor; cartão permanente não cadastrado.
+- [x] Aplicar regra TCP 8080 restrita ao IP/interface e sub-rede do hotspot; confirmar presença online do Pelado com pedidos reais HTTP 200 (cadastrador depois desmontado para reaproveitar as peças na tranca Clack).
+- [x] Validar captura física de UID pelo RC522 do Pelado, recebido pelo servidor; cartão permanente não cadastrado (cadastrador desmontado depois).
 - [x] Reduzir a atualização do painel para 1 s e enviar eventos do firmware imediatamente; build Vite/Docker concluído, serviço saudável e tranca 204 reconectada com HTTP 200 após gravação.
 - [ ] Medir na bancada o tempo percebido entre leitura/acionamento da tranca 204 e atualização visual do painel.
 - [x] Implementar no firmware da tranca a sinalização por três LEDs: verde disponível, vermelho ocupado/indisponível e amarelo piscando a cada 500 ms sem sincronização válida (compilação PlatformIO validada).
 - [ ] Ligar e validar fisicamente os três LEDs da tranca 204, incluindo queda e retorno da conexão ao servidor.
 - [ ] Revisar/importar dados antigos, se necessários.
-- [ ] Cadastrar uma sala, uma tranca e o cadastrador da portaria.
+- [ ] Criar cadastrador dedicado para a portaria, substituindo o Pelado desmontado para virar a tranca Clack; montar e cadastrar o novo dispositivo/token.
+- [ ] Cadastrar uma sala e a tranca Clack.
 - [ ] Inicializar LittleFS uma única vez e gravar o firmware completo.
 - [x] Validar fisicamente leitura RFID, abertura/fechamento do servo e integração com o Clack na tranca 204.
 - [ ] Validar LEDs de status, cadastro/revogação, permissões, transferência de professor, acesso da TI sem troca de responsável e intervenção da portaria.
@@ -75,7 +78,6 @@ físicos somente após executá-los nos dispositivos reais.
 - [ ] Decidir se será adicionado sensor de porta/trinco; sem ele o estado continua apenas lógico.
 - [ ] Melhorar recuperação/troca de dispositivo e migração dos dados legados.
 - [ ] Calibrar a tranca final, construir a miniporta e imprimir peças em PETG.
-- [ ] Medir consumo, autonomia e transição da UPS de 1 A com o MG90S sob carga.
 - [ ] Montar roteiro, registrar evidências da demonstração e atualizar o documento do TCC II.
 
 ## Depois do protótipo
@@ -83,15 +85,19 @@ físicos somente após executá-los nos dispositivos reais.
 - [ ] Decidir se MQTT continua no escopo; a versão atual usa HTTP autenticado.
 - [ ] Avaliar proteção contra clonagem de UID para eventual implantação real.
 
+## Upgrades futuros para o mestrado
+- [ ] Adicionar display OLED à tranca.
+- [ ] Adicionar bateria/UPS e medir consumo, autonomia e transição com o MG90S sob carga.
+
 ## Orçamento conhecido: uma tranca completa
 | Componente | Valor informado |
 |---|---:|
 | ESP32 DevKit | R$ 45 |
 | MG90S | R$ 20 |
 | RC522 | R$ 22 |
-| OLED | R$ 23 |
 | Bateria reaproveitada | R$ 0 |
-| UPS 1S 5 V/1 A | R$ 19 |
-| **Subtotal** | **R$ 129** |
+| **Subtotal do protótipo atual** | **R$ 87** |
+
+Upgrades adiados para o mestrado: display OLED (R$ 23) e UPS 1S 5 V/1 A (R$ 19).
 
 Ainda cotar: fonte, proteção/acionamento adequado, buzzer, conectores/fios, fixações, mecanismo, miniporta e **um rolo de PETG**. Cadastrador e armário têm orçamentos separados; não confundir subtotal acima com custo final instalado.

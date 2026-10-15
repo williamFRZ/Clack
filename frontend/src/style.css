@@ -10,6 +10,7 @@
   --line: #dce3eb;
   --accent: #254c76;
   --hover: #eef3f8;
+  --last-user: #b45309;
 }
 * {
   box-sizing: border-box;
@@ -26,6 +27,7 @@ body {
   --line: #35465a;
   --accent: #95c5f6;
   --hover: #26384a;
+  --last-user: #fbbf24;
   background: var(--bg);
   color: var(--text);
 }
@@ -260,6 +262,36 @@ header {
 }
 .toolbar p {
   margin: 0;
+}
+.history-day-filter {
+  min-width: 180px;
+  margin: 0;
+}
+.history-day-filter input {
+  width: 100%;
+}
+.history-tabs {
+  display: flex;
+  gap: 8px;
+  margin: -4px 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+.history-tab {
+  border-radius: 7px 7px 0 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+}
+.history-tab:hover:not(:disabled) {
+  background: var(--hover);
+  filter: none;
+}
+.history-tab.active {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+}
+.history-toolbar {
+  flex-wrap: wrap;
 }
 .card-toolbar-main button {
   flex-shrink: 0;
@@ -721,6 +753,7 @@ textarea {
 .occupancy-details dt { color:var(--muted); font-size:11px; margin-bottom:5px; }
 .occupancy-details dd { margin:0; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
 .occupancy-details p { margin:10px 0 0; }
+.occupancy-details .last-room-user { color:var(--last-user); font-weight:700; }
 .map-position-warning { border-left:3px solid #a18b36; padding:8px 12px; font-size:12px; color:var(--muted); }
 @media (max-width:650px) {
   .room-marker { width:24px; height:24px; }

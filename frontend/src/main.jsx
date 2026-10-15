@@ -77,6 +77,8 @@ function App() {
     [modal, setModal] = useState(null),
     [floor, setFloor] = useState(""),
     [history, setHistory] = useState({ eventos: [], auditoria: [] }),
+    [historyView, setHistoryView] = useState("eventos"),
+    [historyDay, setHistoryDay] = useState(""),
     [filter, setFilter] = useState(""),
     [cardSearch, setCardSearch] = useState(""),
     [cardProfile, setCardProfile] = useState(""),
@@ -92,6 +94,8 @@ function App() {
     setOperators([]);
     setNotice("");
     setHistory({ eventos: [], auditoria: [] });
+    setHistoryView("eventos");
+    setHistoryDay("");
     setFilter("");
     setCardSearch("");
     setCardProfile("");
@@ -131,14 +135,14 @@ function App() {
   }, [op]);
   useEffect(() => {
     if (op && tab === "historico")
-      api(`historico${filter ? "&sala=" + filter : ""}`)
+      api(historyQuery(filter, historyDay))
         .then(setHistory)
         .catch(report);
     if (op?.papel === "admin" && tab === "admin")
       api("operadores")
         .then((d) => setOperators(d.operadores))
         .catch(report);
-  }, [tab, op, filter]);
+  }, [tab, op, filter, historyDay]);
   async function save(action, body) {
     setError("");
     try {
@@ -448,7 +452,7 @@ function App() {
             <section className="card-list-block" aria-labelledby="linked-cards-title">
               <div className="card-list-heading">
                 <div>
-                  <h2 id="linked-cards-title">Cartões ativos / vinculados</h2>
+                  <h2 id="linked-cards-title">Cartões ativos</h2>
                   <small>Cartões bloqueados continuam aqui enquanto mantêm o UID vinculado.</small>
                 </div>
                 <span>{linkedCards.length}</span>
@@ -469,10 +473,29 @@ function App() {
           </section>
         )}
         {tab === "historico" && (
-          <>
-            <section className="panel">
-              <div className="toolbar">
-                <h2>Eventos dos dispositivos</h2>
+          <section className="panel">
+            <div className="history-tabs" role="tablist" aria-label="Tipo de atividade">
+              <button
+                className={`history-tab${historyView === "eventos" ? " active" : ""}`}
+                role="tab"
+                aria-selected={historyView === "eventos"}
+                aria-controls="history-events-panel"
+                onClick={() => setHistoryView("eventos")}
+              >
+                Eventos dos dispositivos
+              </button>
+              <button
+                className={`history-tab${historyView === "portaria" ? " active" : ""}`}
+                role="tab"
+                aria-selected={historyView === "portaria"}
+                aria-controls="history-portaria-panel"
+                onClick={() => setHistoryView("portaria")}
+              >
+                Ações da portaria
+              </button>
+            </div>
+            <div className="toolbar history-toolbar">
+              {historyView === "eventos" ? (
                 <select
                   aria-label="Filtrar sala"
                   value={filter}
@@ -485,71 +508,89 @@ function App() {
                     </option>
                   ))}
                 </select>
-                <button
-                  className="quiet"
-                  onClick={() =>
-                    api(`historico${filter ? "&sala=" + filter : ""}`)
-                      .then(setHistory)
-                      .catch(report)
-                  }
-                >
-                  Atualizar
-                </button>
-              </div>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Horário do evento</th>
-                      <th>Sala</th>
-                      <th>Pessoa</th>
-                      <th>Resultado</th>
-                      <th>Recebido</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.eventos.map((e) => (
-                      <tr key={e.id}>
-                        <td>{date(e.ocorrido_em)}</td>
-                        <td>{e.sala}</td>
-                        <td>{e.nome || "Portaria / sistema"}</td>
-                        <td>{eventLabels[e.resultado] || e.resultado}</td>
-                        <td>{date(e.recebido_em)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {history.eventos.length === 100 && (
-                <button
-                  className="quiet"
-                  onClick={() =>
-                    api(
-                      `historico&antes=${history.eventos.at(-1).id}${filter ? "&sala=" + filter : ""}`,
-                    )
-                      .then(setHistory)
-                      .catch(report)
-                  }
-                >
-                  Eventos anteriores
+              ) : null}
+              <label className="history-day-filter">
+                Filtrar por dia
+                <input
+                  type="date"
+                  aria-label="Filtrar por dia"
+                  value={historyDay}
+                  onChange={(e) => setHistoryDay(e.target.value)}
+                />
+              </label>
+              {historyDay && (
+                <button className="quiet" onClick={() => setHistoryDay("")}>
+                  Todas as atividades
                 </button>
               )}
-              <p className="muted">
-                Sem relógio válido no dispositivo, o horário do evento fica
-                desconhecido; a ordem é preservada pela sequência.
-              </p>
-            </section>
-            <section className="panel">
-              <h2>Ações da portaria</h2>
-              {history.auditoria.map((a) => (
-                <div className="audit" key={a.id}>
-                  <strong>{a.operador}</strong>
-                  <span>{a.acao.replaceAll("_", " ")}</span>
-                  <small>{date(a.criado_em)}</small>
+              <button
+                className="quiet"
+                onClick={() =>
+                  api(historyQuery(filter, historyDay))
+                    .then(setHistory)
+                    .catch(report)
+                }
+              >
+                Atualizar
+              </button>
+            </div>
+            {historyView === "eventos" ? (
+              <div id="history-events-panel" role="tabpanel" aria-label="Eventos dos dispositivos">
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Horário do evento</th>
+                        <th>Sala</th>
+                        <th>Pessoa</th>
+                        <th>Resultado</th>
+                        <th>Recebido</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.eventos.map((e) => (
+                        <tr key={e.id}>
+                          <td>{date(e.ocorrido_em)}</td>
+                          <td>{e.sala}</td>
+                          <td>{e.nome || "Portaria / sistema"}</td>
+                          <td>{eventLabels[e.resultado] || e.resultado}</td>
+                          <td>{date(e.recebido_em)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-            </section>
-          </>
+                {history.eventos.length === 100 && (
+                  <button
+                    className="quiet"
+                    onClick={() =>
+                      api(
+                        historyQuery(filter, historyDay, history.eventos.at(-1).id),
+                      )
+                        .then(setHistory)
+                        .catch(report)
+                    }
+                  >
+                    Eventos anteriores
+                  </button>
+                )}
+                <p className="muted">
+                  Sem relógio válido no dispositivo, o horário do evento fica
+                  desconhecido; a ordem é preservada pela sequência.
+                </p>
+              </div>
+            ) : (
+              <div id="history-portaria-panel" role="tabpanel" aria-label="Ações da portaria">
+                {history.auditoria.length ? history.auditoria.map((a) => (
+                  <div className="audit" key={a.id}>
+                    <strong>{a.operador}</strong>
+                    <span>{a.acao.replaceAll("_", " ")}</span>
+                    <small>{date(a.criado_em)}</small>
+                  </div>
+                )) : <div className="empty">Nenhuma ação da portaria neste período.</div>}
+              </div>
+            )}
+          </section>
         )}
         {tab === "admin" && op.papel === "admin" && (
           <>
@@ -703,7 +744,10 @@ function OccupancyDetails({ room }) {
       <div><dt>Matrícula</dt><dd>{usage.enrollment}</dd></div>
       <div><dt>Em uso desde</dt><dd>{usage.since}</dd></div>
       {usage.received && <div><dt>Registro recebido</dt><dd>{usage.received} (não é o horário de início)</dd></div>}
-    </dl> : <p>{room.estado === "disponivel" ? "Sem atividade em andamento." : "Sala indisponível para iniciar uma atividade."}</p>}
+    </dl> : <>
+      {room.estado === "disponivel" && room.ultimo_usuario_nome && <p className="last-room-user">Último usuário: {room.ultimo_usuario_nome}</p>}
+      <p>{room.estado === "disponivel" ? "Sem atividade em andamento." : "Sala indisponível para iniciar uma atividade."}</p>
+    </>}
     {!Number(room.online) && <p className="muted">Dispositivo sem conexão recente. Informação da última sincronização.</p>}
   </div>;
 }
@@ -843,6 +887,21 @@ function date(s) {
   return s
     ? new Date(s.replace(" ", "T") + "Z").toLocaleString("pt-BR")
     : "Desconhecido";
+}
+function historyQuery(room, day, before) {
+  const params = new URLSearchParams();
+  if (room) params.set("sala", room);
+  if (before) params.set("antes", before);
+  if (day) {
+    const [year, month, dateOfMonth] = day.split("-").map(Number);
+    const start = new Date(year, month - 1, dateOfMonth);
+    const end = new Date(year, month - 1, dateOfMonth + 1);
+    const sqlUtc = (value) => value.toISOString().slice(0, 19).replace("T", " ");
+    params.set("inicio", sqlUtc(start));
+    params.set("fim", sqlUtc(end));
+  }
+  const query = params.toString();
+  return `historico${query ? `&${query}` : ""}`;
 }
 function Room({ room: s, commands, save }) {
   return (

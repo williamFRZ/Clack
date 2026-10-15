@@ -48,6 +48,8 @@ Quando lota a fila ou falha a memória, novas operações são bloqueadas e o OL
 
 O horário é obtido do servidor. Após reinício sem rede, eventos têm horário desconhecido e sequência preservada. RTC não foi incluído sem escolha de módulo. O histórico distingue ocorrência e recebimento. Nomes/perfis do evento são snapshots, para não mudar ao editar cadastro.
 
+Em **Histórico**, alterne entre **Eventos dos dispositivos** e **Ações da portaria**. Nos eventos, escolha uma sala para restringir a lista; o calendário filtra o dia selecionado em ambas as abas. Use **Todas as atividades** para limpar a data e voltar ao período geral, mantendo a sala selecionada.
+
 Estado da sala é lógico. Não existe sensor de porta/trinco. No boot não se movimenta automaticamente o servo; se houve interrupção durante movimento registrado, o dispositivo entra em erro e requer intervenção. Mesmo com confirmação de comando, posição física requer verificação. Teste e ajuste SERVO_ABERTO/SERVO_FECHADO ao mecanismo antes de instalar.
 
 Comunicação desta entrega: **HTTP autenticado**, no servidor local. MQTT ainda não está implementado. Em LAN compartilhada é necessário HTTPS com validação de certificado antes de uso real: HTTP não protege tokens, senhas nem eventos de escuta/alteração. UID RC522 também não é credencial resistente a clonagem; esta etapa é protótipo acadêmico.
@@ -99,7 +101,7 @@ As plantas técnicas originais permanecem em `frontend/src/assets/plantas/origin
 | Vermelho | Em uso por professor, aluno autorizado ou outro responsável |
 | Cinza com `!` | Manutenção / erro (não se confunde com ocupação) |
 
-Mouse e foco pelo teclado exibem responsável, matrícula (ou NDA) e data/hora. Clique/toque abre os detalhes e intervenções da portaria; consultar não aciona a tranca. O horário é apresentado em `America/Sao_Paulo` e vem do último evento de início/transferência aceito pelo servidor. A troca de professor passa a mostrar desde quando o **responsável atual** assumiu a sala. Negativas e reenvios não redefinem esse início. Quando o ESP32 não tinha relógio válido, o início fica desconhecido e o recebimento é mostrado separadamente, sem ser apresentado como horário exato. Offline preserva a última atividade conhecida e exibe um aviso.
+Mouse e foco pelo teclado exibem responsável, matrícula (ou NDA) e data/hora. Clique/toque abre os detalhes e intervenções da portaria; consultar não aciona a tranca. Quando a sala está disponível, os detalhes mostram em laranja o último usuário registrado em uma atividade, logo abaixo do estado. O horário é apresentado em `America/Sao_Paulo` e vem do último evento de início/transferência aceito pelo servidor. A troca de professor passa a mostrar desde quando o **responsável atual** assumiu a sala. Negativas e reenvios não redefinem esse início. Quando o ESP32 não tinha relógio válido, o início fica desconhecido e o recebimento é mostrado separadamente, sem ser apresentado como horário exato. Offline preserva a última atividade conhecida e exibe um aviso.
 
 O banco passa à versão 3. Execute `php bin/configurar.php` em instalações existentes antes de usar o novo painel: são adicionados `mapa_x`/`mapa_y` e o perfil `ti`, sem apagar salas, cartões ou coordenadas antigas. Os campos antigos `x`/`y` não são convertidos automaticamente porque se referiam ao mapa esquemático, não à planta.
 
