@@ -110,7 +110,7 @@ function App() {
   useEffect(() => {
     if (!op) return;
     refresh();
-    const t = setInterval(refresh, 5000);
+    const t = setInterval(refresh, 1000);
     return () => clearInterval(t);
   }, [op]);
   useEffect(() => {

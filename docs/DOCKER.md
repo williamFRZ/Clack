@@ -217,7 +217,7 @@ preencha Wi-Fi, ID e token. Para Docker, o endereço deve ser:
 
 Ajuste o IP/porta, mantenha `/dispositivo.php` e escolha `DEVICE_MODE`:
 
-- `0`: tranca com OLED e servo.
+- `0`: tranca com servo; OLED opcional e LEDs de status independentes.
 - `1`: cadastrador conectado por Wi-Fi, usado para capturar cartões.
 - `2`: armário offline; usa `CABINET_UID`, sem a gestão online das salas.
 
@@ -237,8 +237,10 @@ preservando LittleFS. A troca/reinicialização de hardware exige reprovisão
 controlada; não reutilize uma identidade com a sequência zerada.
 
 Confira pinagem, alimentação e calibração do servo em [GESTAO.md](GESTAO.md).
-Antes de instalar em uma porta, teste RFID, OLED, movimento, falta de rede e
-corte/retorno de energia na bancada.
+Na tranca 204 sem OLED, use os LEDs descritos ali: vermelho para ocupado/erro,
+verde para disponível e amarelo piscando a cada 500 ms enquanto não sincroniza
+com o servidor. Antes de instalar em uma porta, teste RFID, LEDs, movimento,
+falta de rede e corte/retorno de energia na bancada.
 
 ## 9. Cadastrar cartões e usar o painel
 

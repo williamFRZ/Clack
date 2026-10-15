@@ -49,16 +49,22 @@
 - [x] Configurar início do hotspot ao entrar no Windows (com rede disponível); iniciador executado com sucesso, reinício do Windows ainda não validado.
 - [x] Aplicar regra TCP 8080 restrita ao IP/interface e sub-rede do hotspot; confirmar presença online do Pelado com pedidos reais HTTP 200.
 - [x] Validar captura física de UID pelo RC522 do Pelado, recebido pelo servidor; cartão permanente não cadastrado.
+- [x] Reduzir a atualização do painel para 1 s e enviar eventos do firmware imediatamente; build Vite/Docker concluído, serviço saudável e tranca 204 reconectada com HTTP 200 após gravação.
+- [ ] Medir na bancada o tempo percebido entre leitura/acionamento da tranca 204 e atualização visual do painel.
+- [x] Implementar no firmware da tranca a sinalização por três LEDs: verde disponível, vermelho ocupado/indisponível e amarelo piscando a cada 500 ms sem sincronização válida (compilação PlatformIO validada).
+- [ ] Ligar e validar fisicamente os três LEDs da tranca 204, incluindo queda e retorno da conexão ao servidor.
 - [ ] Revisar/importar dados antigos, se necessários.
 - [ ] Cadastrar uma sala, uma tranca e o cadastrador da portaria.
 - [ ] Inicializar LittleFS uma única vez e gravar o firmware completo.
-- [ ] Validar RFID, OLED, servo, cadastro, permissões, transferência de professor, acesso da TI sem troca de responsável e intervenção da portaria.
+- [x] Validar fisicamente leitura RFID, abertura/fechamento do servo e integração com o Clack na tranca 204.
+- [ ] Validar LEDs de status, cadastro/revogação, permissões, transferência de professor, acesso da TI sem troca de responsável e intervenção da portaria.
 - [ ] Testar corte de energia, reconexão, deduplicação do histórico e fila cheia em hardware.
 
-Próximo passo: [configurar a primeira sala](PRIMEIRA-SALA.md), posicionar na
-planta e conectar uma tranca e um cadastrador. Marcar cadastros e testes físicos
-somente após executá-los com os dispositivos reais. A validação automatizada do
-formulário usa API simulada e não cria salas no banco de demonstração.
+Próximo passo na bancada: ligar os LEDs da tranca 204 (GPIO 26/32/33, com
+resistores), gravar o firmware atualizado e validar disponível/ocupado e perda/
+retorno do servidor. Em seguida, medir o atraso real do painel e executar os
+testes pendentes de permissões, persistência e mecanismo sob carga. Marcar testes
+físicos somente após executá-los nos dispositivos reais.
 
 ## Prioridade 3 — fechar decisões e apresentação
 - [ ] Confirmar a regra definitiva do perfil limpeza.

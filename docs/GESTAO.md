@@ -61,10 +61,15 @@ Comunicação desta entrega: **HTTP autenticado**, no servidor local. MQTT ainda
 | OLED SDA/SCL | 21 / 22 |
 | Servo sinal | 4 |
 | Buzzer ativo (circuito adequado) | 25 |
+| LED vermelho (ocupada/indisponível) | 26 |
+| LED verde (disponível) | 32 |
+| LED amarelo (sem servidor) | 33 |
 
 RC522 e OLED em 3,3 V; terras comuns. Servo em alimentação de 5 V adequada, não no pino 3,3 V. Buzzer com corrente incompatível com GPIO exige transistor/driver. Conferir módulo exato e medir corrente: UPS 5 V/1 A selecionada **ainda não validada** sob pico do MG90S nem em transição de energia.
 
-- DEVICE_MODE=0: tranca; OLED_ENABLED=1 (endereço 0x3C). Se seu OLED responder em 0x3D, ajuste antes de testar.
+Na tranca 204 sem OLED, use a pinagem que já está montada: RC522 SS/SCK/MISO/MOSI/RST em GPIO 5/18/19/23/22 e servo em GPIO 13. Os LEDs usam GPIO 26 (vermelho), 32 (verde) e 33 (amarelo); cada LED deve ter resistor em série (por exemplo, 220–1000 Ω), com cátodo no GND. Esses pinos podem ser ajustados por `LED_RED_PIN`, `LED_GREEN_PIN` e `LED_YELLOW_PIN` no `config.local.h`. O verde fica aceso quando disponível; o vermelho quando ocupado ou em manutenção/erro; sem comunicação válida com o servidor, vermelho e verde apagam e o amarelo alterna ligado/desligado a cada 500 ms. O sinal de conexão significa que Wi-Fi e sincronização autenticada com a API estão funcionando.
+
+- DEVICE_MODE=0: tranca; OLED é opcional (OLED_ENABLED=1, endereço 0x3C). Os três LEDs de status são independentes do OLED.
 - DEVICE_MODE=1: cadastrador dedicado; Wi-Fi obrigatório para captura; OLED opcional.
 - DEVICE_MODE=2: armário sem rede/tela, buzzer, um UID autorizado configurado em CABINET_UID. Histórico local circular de 64 eventos. Cadastro local de múltiplos cartões ainda não implementado.
 
@@ -73,7 +78,7 @@ RC522 e OLED em 3,3 V; terras comuns. Servo em alimentação de 5 V adequada, n�
 - Plantas estilizadas incluídas; faltam a identificação/posição real de salas e a definição final de limpeza.
 - Calibração MG90S, curso do trinco, miniporta e caixa PETG.
 - Medições da UPS de 1 A, proteção de bateria, autonomia e queda/retorno de energia.
-- Testes de bancada com RC522/OLED/servo/buzzer, persistência e fila cheia.
+- Testes de bancada com RC522, servo, buzzer, LEDs (incluindo perda/retorno do servidor), persistência e fila cheia. Na tranca 204 sem OLED, testar os LEDs no lugar do display.
 - Política e fluxo de recuperação/troca de dispositivo, importação revisada dos cadastros antigos.
 - HTTPS local e eventual migração MQTT com autenticação/ACL; testes de carga/limites e revisão de segurança antes de uso em salas reais.
 - Demonstração e evidências do TCC II, depois atualização do texto.

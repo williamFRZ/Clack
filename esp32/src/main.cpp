@@ -21,12 +21,22 @@
 #ifndef RFID_MOSI_PIN
 #define RFID_MOSI_PIN 23
 #endif
+#ifndef LED_RED_PIN
+#define LED_RED_PIN 26
+#endif
+#ifndef LED_GREEN_PIN
+#define LED_GREEN_PIN 32
+#endif
+#ifndef LED_YELLOW_PIN
+#define LED_YELLOW_PIN 33
+#endif
 
 MFRC522 rfid(5,RFID_RST_PIN);
 Servo servo;
 Adafruit_SSD1306 oled(128,64,&Wire,-1);
 JsonDocument state;
 bool healthy=false,displayReady=false;
+volatile bool serverConnected=false,roomAvailableLed=true;
 int slot=-1;
 unsigned long lastSync=0,lastWifi=0,lastRead=0,lastSeen=0;
 String heldUid,capture;
@@ -49,12 +59,13 @@ bool readSlot(int index,JsonDocument& out){
  return out["sequencia"].is<unsigned long>()&&out["estado"].is<const char*>()&&out["eventos"].is<JsonArray>();
 }
 bool persist(){
+ roomAvailableLed=state["estado"].as<String>()=="disponivel";
  state["generation"]=state["generation"].as<unsigned long>()+1;
  String payload;serializeJson(state,payload);JsonDocument wrapper;wrapper["payload"]=payload;wrapper["checksum"]=checksum(payload);
  int next=slot==0?1:0;File f=LittleFS.open(next?"/state1.json":"/state0.json","w");
- if(!f){healthy=false;screen("Falha de memoria","Acesso bloqueado");return false;}
+ if(!f){healthy=false;roomAvailableLed=false;screen("Falha de memoria","Acesso bloqueado");return false;}
  size_t expected=measureJson(wrapper),written=serializeJson(wrapper,f);f.flush();f.close();
- JsonDocument check;if(written!=expected||!readSlot(next,check)){healthy=false;screen("Falha de memoria","Acesso bloqueado");return false;}
+ JsonDocument check;if(written!=expected||!readSlot(next,check)){healthy=false;roomAvailableLed=false;screen("Falha de memoria","Acesso bloqueado");return false;}
  slot=next;return true;
 }
 void beep(bool ok){digitalWrite(BUZZER_PIN,HIGH);delay(ok?70:250);digitalWrite(BUZZER_PIN,LOW);}
@@ -65,6 +76,7 @@ bool event(const char* result,JsonObjectConst card=JsonObjectConst()){
  JsonObject e=events.add<JsonObject>();e["sequencia"]=seq;e["resultado"]=result;
  if(!card.isNull()){e["uid"]=card["uid"];e["nome"]=card["nome"];e["perfil"]=card["perfil"];}
  time_t now=time(nullptr);if(now>=1704067200)e["timestamp"]=(long long)now;
+ lastSync=0; // Envie eventos de acesso imediatamente; o intervalo periódico segue em 2 s.
  return true;
 }
 void actuate(bool open){
@@ -111,7 +123,7 @@ void readCard(const String& uid){
  screen(healthy?(decision==Decisao::Abrir?"Atividade iniciada":"Atividade encerrada"):"Falha de memoria");
 }
 void syncServer(){
- lastSync=millis();if(DEVICE_MODE==2||WiFi.status()!=WL_CONNECTED)return;
+ lastSync=millis();if(DEVICE_MODE==2)return;if(WiFi.status()!=WL_CONNECTED){serverConnected=false;return;}
  JsonDocument req;req["dispositivo"]=DEVICE_ID;
  if(DEVICE_MODE==0){
   if(!healthy)return;
@@ -121,12 +133,13 @@ void syncServer(){
  String payload;serializeJson(req,payload);HTTPClient http;http.setConnectTimeout(1500);http.setTimeout(1500);http.begin(SERVER_URL);
  http.addHeader("Authorization",String("Bearer ")+DEVICE_TOKEN);http.addHeader("Content-Type","application/json");
  int code=http.POST(payload);String body=code==200?http.getString():"";http.end();
- if(code!=200){Serial.printf("Sync falhou: HTTP %d%s%s\n",code,code<0?" - ":"",code<0?HTTPClient::errorToString(code).c_str():"");return;}
- JsonDocument response;if(deserializeJson(response,body))return;
+ if(code!=200){serverConnected=false;Serial.printf("Sync falhou: HTTP %d%s%s\n",code,code<0?" - ":"",code<0?HTTPClient::errorToString(code).c_str():"");return;}
+ JsonDocument response;if(deserializeJson(response,body)){serverConnected=false;return;}
  if(DEVICE_MODE==1){capture=response["captura"].as<String>();if(capture=="null")capture="";screen(capture.isEmpty()?"Cadastrador pronto":"Aproxime o cartao");return;}
- if(!response["confirmados"].is<JsonArray>()||!response["cartoes"].is<JsonArray>()||!response["versao"].is<const char*>())return;
+ if(!response["confirmados"].is<JsonArray>()||!response["cartoes"].is<JsonArray>()||!response["versao"].is<const char*>()){serverConnected=false;return;}
+ serverConnected=true;
  if(response["ultima_sequencia"].as<unsigned long>()>state["sequencia"].as<unsigned long>()){
-  healthy=false;screen("Sequencia divergente","Reprovisione a tranca");return;
+  healthy=false;roomAvailableLed=false;screen("Sequencia divergente","Reprovisione a tranca");return;
  }
  bool changed=false;JsonArray events=state["eventos"].as<JsonArray>();
  for(int i=(int)events.size()-1;i>=0;i--)for(JsonVariantConst ack:response["confirmados"].as<JsonArrayConst>())if(events[i]["sequencia"].as<unsigned long>()==ack.as<unsigned long>()){events.remove(i);changed=true;break;}
@@ -145,11 +158,22 @@ void syncServer(){
  state["responsavel"]=nullptr;state["comando"]=cmd["id"];state["pending"]=true;
  finishMotion(action=="abrir");screen("Comando da portaria",action);
 }
+void statusLedTask(void*){
+ bool yellowOn=false;
+ for(;;){
+  if(DEVICE_MODE==0){
+   bool offline=WiFi.status()!=WL_CONNECTED||!serverConnected;
+   if(offline){digitalWrite(LED_RED_PIN,LOW);digitalWrite(LED_GREEN_PIN,LOW);yellowOn=!yellowOn;digitalWrite(LED_YELLOW_PIN,yellowOn?HIGH:LOW);vTaskDelay(pdMS_TO_TICKS(500));}
+   else{digitalWrite(LED_YELLOW_PIN,LOW);bool available=roomAvailableLed;digitalWrite(LED_GREEN_PIN,available?HIGH:LOW);digitalWrite(LED_RED_PIN,available?LOW:HIGH);vTaskDelay(pdMS_TO_TICKS(50));}
+  }else vTaskDelay(pdMS_TO_TICKS(500));
+ }
+}
 void setup(){
  Serial.begin(115200);
  Serial.printf("Clack: modo=%d dispositivo=%d\n",DEVICE_MODE,DEVICE_ID);
  if(DEVICE_MODE!=2)Serial.printf("Servidor: %s\n",SERVER_URL);
  pinMode(BUZZER_PIN,OUTPUT);digitalWrite(BUZZER_PIN,LOW);
+ if(DEVICE_MODE==0){pinMode(LED_RED_PIN,OUTPUT);pinMode(LED_GREEN_PIN,OUTPUT);pinMode(LED_YELLOW_PIN,OUTPUT);digitalWrite(LED_RED_PIN,LOW);digitalWrite(LED_GREEN_PIN,LOW);digitalWrite(LED_YELLOW_PIN,LOW);}
  if(OLED_ENABLED&&DEVICE_MODE!=2){Wire.begin(21,22);displayReady=oled.begin(SSD1306_SWITCHCAPVCC,0x3C);}
  SPI.begin(18,19,RFID_MOSI_PIN,5);rfid.PCD_Init();screen("Inicializando...");
  byte rfidVersion=rfid.PCD_ReadRegister(MFRC522::VersionReg);
@@ -159,7 +183,7 @@ void setup(){
   if(!LittleFS.begin(false)){screen("LittleFS indisponivel","Veja README");}
   else{
    JsonDocument a,b;bool va=readSlot(0,a),vb=readSlot(1,b);
-   if(va||vb){slot=va&&(!vb||a["generation"].as<unsigned long>()>=b["generation"].as<unsigned long>())?0:1;state.set(slot==0?a:b);healthy=true;}
+   if(va||vb){slot=va&&(!vb||a["generation"].as<unsigned long>()>=b["generation"].as<unsigned long>())?0:1;state.set(slot==0?a:b);healthy=true;roomAvailableLed=state["estado"].as<String>()=="disponivel";}
    else if(!LittleFS.exists("/state0.json")&&!LittleFS.exists("/state1.json")){
     state["sequencia"]=0;state["generation"]=0;state["estado"]="disponivel";state["responsavel"]=nullptr;state["comando"]=0;state["pending"]=false;state["versao"]="";state["eventos"].to<JsonArray>();state["cartoes"].to<JsonArray>();healthy=persist();
    }
@@ -172,6 +196,7 @@ void setup(){
   }
  }
  if(DEVICE_MODE!=2){WiFi.mode(WIFI_STA);WiFi.begin(WIFI_SSID,WIFI_PASSWORD);lastWifi=millis();}
+ if(DEVICE_MODE==0)xTaskCreatePinnedToCore(statusLedTask,"status_leds",2048,nullptr,1,nullptr,1);
  screen(healthy||DEVICE_MODE==1?"Pronto":"Verificar memoria","Aproxime o cartao");
 }
 void loop(){
