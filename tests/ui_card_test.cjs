@@ -4,8 +4,17 @@ const { chromium } = require(process.env.CLACK_PLAYWRIGHT || '../frontend/node_m
   const browser = await chromium.launch({ headless: true, ...(process.env.CLACK_BROWSER ? { executablePath: process.env.CLACK_BROWSER } : {}) });
   try {
     const page = await browser.newPage();
-    const sample = { salas: [], cartoes: [], permissoes: [], dispositivos: [{ id: 2, nome: 'Leitor de teste', tipo: 'cadastrador' }], comandos: [] };
-    let capture = '', started = 0, cancelled = 0, saved = 0;
+    const sample = {
+      salas: [],
+      cartoes: [
+        { id: 199, nome: 'Zeca', matricula: '199', uid: 'AA:BB:CC:199', perfil: 'professor', ativo: 1 },
+        { id: 200, nome: 'Ána Silva', matricula: '200', uid: 'AA:BB:CC:200', perfil: 'professor', ativo: 1 },
+        { id: 201, nome: 'Bruno', matricula: '201', uid: 'AA:BB:CC:201', perfil: 'aluno', ativo: 1 },
+        { id: 202, nome: 'Ana Silva', matricula: '202', uid: null, perfil: 'professor', ativo: 0 },
+      ],
+      permissoes: [], dispositivos: [{ id: 2, nome: 'Leitor de teste', tipo: 'cadastrador' }], comandos: []
+    };
+    let capture = '', started = 0, cancelled = 0, saved = 0, nextCardId = 202;
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     await page.route('**/api.php?*', async route => {
@@ -20,7 +29,8 @@ const { chromium } = require(process.env.CLACK_PLAYWRIGHT || '../frontend/node_m
       if (action === 'cancelar_captura') { cancelled++; capture = ''; }
       if (action === 'cartao') {
         assert.ok(body.captura, 'Cadastro deve enviar a leitura correspondente');
-        sample.cartoes.push({ ...body, id: ++saved, uid: `AA:BB:CC:${String(started).padStart(2, '0')}`, ativo: 1 });
+        saved++;
+        sample.cartoes.push({ ...body, id: ++nextCardId, uid: `AA:BB:CC:${String(started).padStart(2, '0')}`, ativo: 1 });
         capture = '';
       }
       if (action === 'revogar_cartao') {
@@ -30,6 +40,25 @@ const { chromium } = require(process.env.CLACK_PLAYWRIGHT || '../frontend/node_m
     });
     await page.goto(process.env.CLACK_UI_URL || 'http://127.0.0.1:8090/painel/');
     await page.getByRole('button', { name: 'Cartões', exact: true }).click();
+    const linked = page.locator('section[aria-labelledby="linked-cards-title"]');
+    const unlinked = page.locator('section[aria-labelledby="unlinked-cards-title"]');
+    assert.equal(await linked.locator('tbody tr').count(), 3, 'Cartões com UID ficam na primeira lista');
+    assert.equal(await unlinked.locator('tbody tr').count(), 1, 'Cartões sem UID ficam na lista de desvinculados');
+    assert.deepEqual(await linked.locator('tbody tr td:first-child strong').allTextContents(), ['Ána Silva', 'Bruno', 'Zeca'], 'Ordem alfabética é o padrão');
+    assert.equal(await page.getByLabel('Buscar pessoa').count(), 0, 'A busca por pessoa foi incorporada à busca de cartão');
+    await page.getByLabel('Buscar cartão').fill('ana');
+    assert.equal(await linked.locator('tbody tr').count(), 1, 'Busca por nome ignora acentos e mostra os homônimos vinculados');
+    assert.equal(await unlinked.locator('tbody tr').count(), 1, 'Busca por nome mostra também os homônimos desvinculados');
+    await page.getByLabel('Buscar cartão').fill('201');
+    assert.equal(await linked.locator('tbody tr').count(), 1, 'Busca única encontra pela matrícula');
+    assert.equal(await unlinked.locator('tbody tr').count(), 0);
+    await page.getByLabel('Buscar cartão').fill('AA:BB:CC:199');
+    assert.equal(await linked.locator('tbody tr').count(), 1, 'Busca única encontra pelo UID');
+    assert.equal(await linked.locator('tbody tr td:first-child strong').textContent(), 'Zeca');
+    await page.getByLabel('Buscar cartão').fill('');
+    await page.getByLabel('Ordenar cartões').selectOption('registration');
+    assert.deepEqual(await linked.locator('tbody tr td:first-child strong').allTextContents(), ['Zeca', 'Ána Silva', 'Bruno'], 'Ordem de cadastro usa o ID crescente');
+    await page.getByLabel('Ordenar cartões').selectOption('name');
     await page.getByRole('button', { name: 'Novo cartão', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByRole('button', { name: 'Iniciar leitura', exact: true }).click();
@@ -55,8 +84,9 @@ const { chromium } = require(process.env.CLACK_PLAYWRIGHT || '../frontend/node_m
     page.once('dialog', d => d.accept());
     await dialog.getByRole('button', { name: 'Revogar acesso', exact: true }).click();
     await dialog.waitFor({ state: 'hidden' });
-    assert.equal(sample.cartoes[0].ativo, 0);
-    assert.equal(sample.cartoes[0].uid, 'AA:BB:CC:02');
+    const firstCard = sample.cartoes.find(c => c.nome === 'Primeiro cartão');
+    assert.equal(firstCard.ativo, 0);
+    assert.equal(firstCard.uid, 'AA:BB:CC:02');
     assert.deepEqual(errors, []);
     console.log('UI: liberar ao fechar, dois cadastros consecutivos e revogar acesso preservando UID OK (API simulada).');
   } finally { await browser.close(); }

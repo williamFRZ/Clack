@@ -48,6 +48,16 @@ const labels = {
   ti: "TI",
   completo: "Acesso completo",
 };
+const eventLabels = {
+  atividade_iniciada: "Atividade iniciada",
+  atividade_encerrada: "Atividade encerrada",
+};
+const normalizedSearch = (value) =>
+  String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .trim();
 function App() {
   const [op, setOp] = useState(null),
     [loading, setLoading] = useState(true),
@@ -68,6 +78,9 @@ function App() {
     [floor, setFloor] = useState(""),
     [history, setHistory] = useState({ eventos: [], auditoria: [] }),
     [filter, setFilter] = useState(""),
+    [cardSearch, setCardSearch] = useState(""),
+    [cardProfile, setCardProfile] = useState(""),
+    [cardOrder, setCardOrder] = useState("name"),
     [operators, setOperators] = useState([]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -80,6 +93,9 @@ function App() {
     setNotice("");
     setHistory({ eventos: [], auditoria: [] });
     setFilter("");
+    setCardSearch("");
+    setCardProfile("");
+    setCardOrder("name");
   };
   const report = (e) => {
     setError(e.message);
@@ -140,6 +156,38 @@ function App() {
   const currentFloor = FLOORS.includes(floor) ? floor : FLOORS[0];
   const rooms = data.salas.filter((s) => normalizeFloor(s.andar) === currentFloor);
   const unmappedRooms = data.salas.filter((s) => !normalizeFloor(s.andar));
+  const cardQuery = normalizedSearch(cardSearch);
+  const filteredCards = data.cartoes
+    .filter((c) => {
+      const cardText = normalizedSearch(`${c.nome} ${c.matricula || ""} ${c.uid || ""}`);
+      return (!cardQuery || cardText.includes(cardQuery)) &&
+        (!cardProfile || c.perfil === cardProfile);
+    })
+    .sort((a, b) => cardOrder === "registration"
+      ? Number(a.id) - Number(b.id)
+      : String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR", { sensitivity: "base" }) || Number(a.id) - Number(b.id));
+  const linkedCards = filteredCards.filter((c) => String(c.uid || "").trim());
+  const unlinkedCards = filteredCards.filter((c) => !String(c.uid || "").trim());
+  const cardTable = (cards, emptyText) => cards.length ? (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Pessoa</th><th>Perfil</th><th>Cartão</th><th>Situação</th><th /></tr>
+        </thead>
+        <tbody>
+          {cards.map((c) => (
+            <tr key={c.id}>
+              <td><strong>{c.nome}</strong><small>{Number(c.externo) ? "Externo · NDA" : c.matricula}</small></td>
+              <td>{labels[c.perfil] || c.perfil}</td>
+              <td>{c.uid || "Desvinculado"}</td>
+              <td>{Number(c.ativo) ? "Ativo" : c.uid ? "Bloqueado" : "Desvinculado"}</td>
+              <td><button className="quiet" onClick={() => setModal({ kind: "card", value: c })}>Editar</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : <div className="empty card-empty">{emptyText}</div>;
   if (loading)
     return (
       <main className="login">
@@ -361,54 +409,63 @@ function App() {
         )}
         {tab === "cartoes" && (
           <section className="panel">
-            <div className="toolbar">
+            <div className="toolbar card-toolbar-main">
               <p>Perfis predefinidos, permissões ajustadas por ambiente.</p>
               <button onClick={() => setModal({ kind: "card", value: null })}>
                 <Plus size={17} />
                 Novo cartão
               </button>
             </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Pessoa</th>
-                    <th>Perfil</th>
-                    <th>Cartão</th>
-                    <th>Situação</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.cartoes.map((c) => (
-                    <tr key={c.id}>
-                      <td>
-                        <strong>{c.nome}</strong>
-                        <small>
-                          {Number(c.externo) ? "Externo · NDA" : c.matricula}
-                        </small>
-                      </td>
-                      <td>{labels[c.perfil]}</td>
-                      <td>{c.uid || "Desvinculado"}</td>
-                      <td>{Number(c.ativo) ? "Ativo" : "Bloqueado"}</td>
-                      <td>
-                        <button
-                          className="quiet"
-                          onClick={() => setModal({ kind: "card", value: c })}
-                        >
-                          Editar
-                        </button>
-                      </td>
-                    </tr>
+            <div className="card-filters">
+              <label>
+                Buscar cartão
+                <input
+                  type="search"
+                  aria-label="Buscar cartão"
+                  placeholder="Nome, matrícula ou UID"
+                  value={cardSearch}
+                  onChange={(e) => setCardSearch(e.target.value)}
+                />
+              </label>
+              <label>
+                Filtrar por perfil
+                <select aria-label="Filtrar cartões por perfil" value={cardProfile} onChange={(e) => setCardProfile(e.target.value)}>
+                  <option value="">Todos os perfis</option>
+                  {Object.entries(labels).filter(([key]) => ["professor", "aluno", "limpeza", "ti", "completo"].includes(key)).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
                   ))}
-                </tbody>
-              </table>
+                </select>
+              </label>
+              <label>
+                Ordenar por
+                <select aria-label="Ordenar cartões" value={cardOrder} onChange={(e) => setCardOrder(e.target.value)}>
+                  <option value="name">Ordem alfabética (A–Z)</option>
+                  <option value="registration">Ordem de cadastro</option>
+                </select>
+              </label>
             </div>
-            {!data.cartoes.length && (
-              <div className="empty">
-                Os cartões cadastrados aparecerão aqui.
+
+            <section className="card-list-block" aria-labelledby="linked-cards-title">
+              <div className="card-list-heading">
+                <div>
+                  <h2 id="linked-cards-title">Cartões ativos / vinculados</h2>
+                  <small>Cartões bloqueados continuam aqui enquanto mantêm o UID vinculado.</small>
+                </div>
+                <span>{linkedCards.length}</span>
               </div>
-            )}
+              {cardTable(linkedCards, data.cartoes.length && (cardSearch || cardProfile) ? "Nenhum cartão corresponde aos filtros." : "Nenhum cartão vinculado.")}
+            </section>
+
+            <section className="card-list-block" aria-labelledby="unlinked-cards-title">
+              <div className="card-list-heading">
+                <div>
+                  <h2 id="unlinked-cards-title">Cartões desvinculados</h2>
+                  <small>O UID foi removido do cadastro; o registro e o histórico foram preservados.</small>
+                </div>
+                <span>{unlinkedCards.length}</span>
+              </div>
+              {cardTable(unlinkedCards, data.cartoes.length && (cardSearch || cardProfile) ? "Nenhum cartão corresponde aos filtros." : "Nenhum cartão desvinculado.")}
+            </section>
           </section>
         )}
         {tab === "historico" && (
@@ -456,7 +513,7 @@ function App() {
                         <td>{date(e.ocorrido_em)}</td>
                         <td>{e.sala}</td>
                         <td>{e.nome || "Portaria / sistema"}</td>
-                        <td>{e.resultado}</td>
+                        <td>{eventLabels[e.resultado] || e.resultado}</td>
                         <td>{date(e.recebido_em)}</td>
                       </tr>
                     ))}

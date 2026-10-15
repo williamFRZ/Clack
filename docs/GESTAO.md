@@ -160,6 +160,14 @@ Use **Salvar e cadastrar outro** para salvar, limpar nome/matrícula e iniciar
 a leitura seguinte, preservando perfil e seleção de salas. Retire a tag
 anterior do RC522 antes de aproximar a seguinte.
 
+A aba Cartões separa registros com UID vinculado dos cartões desvinculados.
+Cartões bloqueados que ainda têm UID permanecem na lista vinculada e mostram
+essa situação na coluna correspondente. Use o único campo **Buscar cartão**
+para procurar por nome, matrícula ou UID. A busca mostra todas as
+correspondências nas duas listas e ignora maiúsculas e acentos.
+O filtro por perfil vale para ambas. A ordem padrão é alfabética; também é
+possível ordenar pela ordem de cadastro (mais antigos primeiro).
+
 **Cancelar leitura** ou fechar o formulário libera a captura daquela tela.
 Se a tela for interrompida antes de cancelar, o mesmo operador pode recuperar
 a leitura em andamento; outro operador aguarda a conclusão ou o prazo de dois

@@ -261,6 +261,55 @@ header {
 .toolbar p {
   margin: 0;
 }
+.card-toolbar-main button {
+  flex-shrink: 0;
+}
+.card-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.card-filters label {
+  min-width: 0;
+  margin: 0;
+}
+.card-filters input,
+.card-filters select {
+  width: 100%;
+  min-width: 0;
+}
+.card-list-block + .card-list-block {
+  margin-top: 30px;
+}
+.card-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.card-list-heading h2 {
+  margin: 0 0 5px;
+}
+.card-list-heading small {
+  display: block;
+}
+.card-list-heading > span {
+  min-width: 32px;
+  padding: 6px 9px;
+  border-radius: 16px;
+  background: var(--hover);
+  color: var(--accent);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+.card-empty {
+  padding: 32px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+}
 .map {
   width: 100%;
   max-height: 540px;
@@ -517,6 +566,9 @@ textarea {
     margin-left: 190px;
     width: calc(100% - 190px);
   }
+  .card-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 650px) {
   .shell {
@@ -568,6 +620,9 @@ textarea {
   .toolbar {
     align-items: flex-start;
     flex-wrap: wrap;
+  }
+  .card-filters {
+    grid-template-columns: minmax(0, 1fr);
   }
   .panel {
     padding: 16px;

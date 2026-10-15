@@ -28,6 +28,7 @@
 
 - [x] Liberar reserva após leitura/cancelamento, recuperar leitura do mesmo operador e permitir cadastro consecutivo pelo painel (API e UI validadas em ambiente descartável).
 - [x] Revogar acesso preservando UID/histórico, inclusive TI global (integração e interface validadas).
+- [x] Separar cartões vinculados e desvinculados, com busca única por nome/matrícula/UID, filtro por perfil e ordenação alfabética/ordem de cadastro (build de produção validado; teste de interface atualizado).
 - [ ] Validar fisicamente dois cartões diferentes no novo fluxo consecutivo e a revogação em uma tranca real sincronizada.
 
 - [x] Reiniciar navegação em Ambientes ao sair/entrar e restringir renderização/consulta de Configurações ao administrador (trocas admin/portaria, mesma conta e restrição de Configurações validadas em navegador com API simulada).
