@@ -55,6 +55,7 @@ Para começar os cadastros, siga **[Configurar a primeira sala](docs/PRIMEIRA-SA
 - Contas individuais de portaria/admin, troca de senha, auditoria e rotação de tokens.
 - Cartões com matrícula/NDA, cinco perfis, TI com acesso global e entrada em sala ocupada sem assumir a atividade; salas selecionáveis para os demais e leitura em cadastrador dedicado.
 - Professor autorizado assume responsabilidade de sala em uso mantendo a tag no leitor por 3 segundos; um toque curto não troca o responsável nem aciona o servo. Aluno só inicia atividade em sala disponível.
+- LEDs indicam a contagem da troca em vermelho, amarelo e verde, um segundo cada, e confirmam a ação local com três piscadas verdes de 200 ms aceso e 200 ms apagado.
 - Comandos remotos com validade e confirmação; histórico sem duplicação na reconexão.
 - Cache de permissões e até 64 eventos persistentes no ESP32; eventos sem hora conhecida ficam identificados.
 - Interface clara/escura e em português/espanhol (Uruguai), com idioma persistido por navegador; plantas por andar com portas coloridas pelo estado e posição ajustável por clique.

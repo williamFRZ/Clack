@@ -18,6 +18,8 @@ Registre data, versão do firmware, resultado e tempo observado em cada cenário
 | Outro professor: manter por 3 s | Uma única transferência, sem mover o servo nem encerrar a sala enquanto a tag permanecer | Validado na 204 em 09/11/2026 |
 | Transferência interrompida | Retirar antes de 3 s não muda o responsável; após retirada, pode tentar novamente | Validado na 204 em 09/11/2026 |
 | Após transferência | Retirar a tag e aproximar novamente encerra a atividade do novo responsável | Validado na 204 em 09/11/2026 |
+| LEDs durante troca | Vermelho, amarelo e verde em sequência, um segundo cada; cancelamento retorna ao estado | Pendente: LEDs não instalados |
+| LEDs após ação local | Verde pisca três vezes a 200 ms ligado/desligado e retorna ao estado, inclusive offline | Pendente: LEDs não instalados |
 | Manutenção | Restrições respeitadas; encerrar manutenção restaura disponibilidade | Pendente |
 | Wi-Fi interrompido | Indicação de perda de comunicação; painel preserva último estado conhecido | Pendente |
 | Wi-Fi restabelecido | Eventos reconciliados sem duplicação e contato atualizado | Pendente |

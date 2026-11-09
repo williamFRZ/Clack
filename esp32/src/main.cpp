@@ -11,6 +11,7 @@
 #include <time.h>
 #include "regras.h"
 #include "confirmacao_tag.h"
+#include "indicacao_led.h"
 #if __has_include("config.local.h")
 #include "config.local.h"
 #elif defined(CLACK_CI)
@@ -38,6 +39,9 @@ Adafruit_SSD1306 oled(128,64,&Wire,-1);
 JsonDocument state;
 bool healthy=false,displayReady=false;
 volatile bool serverConnected=false,roomAvailableLed=true;
+enum class EventoLed : uint8_t { Nenhum, IniciarTroca, CancelarTroca, Confirmacao };
+portMUX_TYPE ledMux = portMUX_INITIALIZER_UNLOCKED;
+volatile EventoLed eventoLed = EventoLed::Nenhum;
 int slot=-1;
 unsigned long lastSync=0,lastWifi=0,lastRead=0;
 String heldUid,capture;
@@ -45,6 +49,13 @@ ConfirmacaoTag confirmacaoTroca;
 ConfirmacaoRetiradaTag retiradaTag;
 wl_status_t lastWifiStatus=WL_NO_SHIELD;
 constexpr int MAX_EVENTS=64;
+
+void sinalizarLed(EventoLed evento){
+ if(DEVICE_MODE!=0)return;
+ portENTER_CRITICAL(&ledMux);
+ eventoLed=evento;
+ portEXIT_CRITICAL(&ledMux);
+}
 
 void screen(const String& title,const String& detail="") {
  Serial.println(title+" "+detail);
@@ -73,7 +84,7 @@ bool persist(){
 }
 void beep(bool ok){digitalWrite(BUZZER_PIN,HIGH);delay(ok?70:250);digitalWrite(BUZZER_PIN,LOW);}
 void informarCancelamento(ResultadoConfirmacaoTag resultado){
- if(resultado==ResultadoConfirmacaoTag::Cancelada){screen("Troca cancelada","Retire e tente novamente");beep(false);}
+ if(resultado==ResultadoConfirmacaoTag::Cancelada){sinalizarLed(EventoLed::CancelarTroca);screen("Troca cancelada","Retire e tente novamente");beep(false);}
 }
 bool event(const char* result,JsonObjectConst card=JsonObjectConst()){
  JsonArray events=state["eventos"].as<JsonArray>();
@@ -93,7 +104,7 @@ void actuate(bool open){
 }
 void finishMotion(bool open){
  if(!persist())return;actuate(open);state["pending"]=false;
- if(!persist())return;beep(true);
+ if(!persist())return;sinalizarLed(EventoLed::Confirmacao);beep(true);
 }
 bool exigeConfirmacaoTroca(const String& uid){
  if(DEVICE_MODE!=0||!healthy)return false;
@@ -112,7 +123,7 @@ void readCard(const String& uid, bool trocaConfirmada=false){
   String payload;serializeJson(req,payload);int code=http.POST(payload);http.end();screen(code==200?"Cartao capturado":"Falha na captura");beep(code==200);if(code==200)capture="";return;
  }
  if(!healthy){screen("Memoria indisponivel");beep(false);return;}
- if(state["eventos"].size()>=MAX_EVENTS){screen("Historico cheio","Reconecte ao servidor");beep(false);return;}
+ if(state["eventos"].size()>=MAX_EVENTS){if(trocaConfirmada)sinalizarLed(EventoLed::CancelarTroca);screen("Historico cheio","Reconecte ao servidor");beep(false);return;}
  JsonDocument person;
  for(JsonObjectConst c:state["cartoes"].as<JsonArrayConst>())if(uid==c["uid"].as<String>()){person.set(c);break;}
  if(person.isNull()){
@@ -124,7 +135,7 @@ void readCard(const String& uid, bool trocaConfirmada=false){
  auto decision=decidir(state["estado"]|"erro",state["responsavel"]|0,person["id"]|0,person["perfil"]|"");
  if(decision==Decisao::Transferir&&!trocaConfirmada)return;
  const char* result=decision==Decisao::Abrir?"atividade_iniciada":decision==Decisao::Fechar?"atividade_encerrada":decision==Decisao::Transferir?"responsabilidade_transferida":decision==Decisao::AcessarSemTransferir?"acesso_ti_liberado":"sala_indisponivel";
- if(!event(result,person.as<JsonObjectConst>()))return;
+ if(!event(result,person.as<JsonObjectConst>())){if(trocaConfirmada)sinalizarLed(EventoLed::CancelarTroca);return;}
  if(decision==Decisao::Negar){persist();screen("Sala indisponivel");beep(false);return;}
  if(decision==Decisao::AcessarSemTransferir){
   // Registra e movimenta a tranca, mas conserva a atividade e o responsável exibidos no painel.
@@ -133,7 +144,7 @@ void readCard(const String& uid, bool trocaConfirmada=false){
  }
  state["estado"]=decision==Decisao::Fechar?"disponivel":"em_uso";
  if(decision==Decisao::Fechar)state["responsavel"]=nullptr;else state["responsavel"]=person["id"];
- if(decision==Decisao::Transferir){if(persist()){screen("Responsavel alterado",person["nome"].as<String>());beep(true);}return;}
+ if(decision==Decisao::Transferir){if(persist()){sinalizarLed(EventoLed::Confirmacao);screen("Responsavel alterado",person["nome"].as<String>());beep(true);}else sinalizarLed(EventoLed::CancelarTroca);return;}
  state["pending"]=true;finishMotion(decision==Decisao::Abrir);
  screen(healthy?(decision==Decisao::Abrir?"Atividade iniciada":"Atividade encerrada"):"Falha de memoria");
 }
@@ -175,12 +186,20 @@ void syncServer(){
  lastSync=0; // Publique o estado confirmado logo após o movimento, sem esperar o próximo ciclo.
 }
 void statusLedTask(void*){
- bool yellowOn=false;
+ IndicacaoLeds leds;
  for(;;){
   if(DEVICE_MODE==0){
-   bool offline=WiFi.status()!=WL_CONNECTED||!serverConnected;
-   if(offline){digitalWrite(LED_RED_PIN,LOW);digitalWrite(LED_GREEN_PIN,LOW);yellowOn=!yellowOn;digitalWrite(LED_YELLOW_PIN,yellowOn?HIGH:LOW);vTaskDelay(pdMS_TO_TICKS(500));}
-   else{digitalWrite(LED_YELLOW_PIN,LOW);bool available=roomAvailableLed;digitalWrite(LED_GREEN_PIN,available?HIGH:LOW);digitalWrite(LED_RED_PIN,available?LOW:HIGH);vTaskDelay(pdMS_TO_TICKS(50));}
+   portENTER_CRITICAL(&ledMux);
+   EventoLed evento=eventoLed;eventoLed=EventoLed::Nenhum;
+   portEXIT_CRITICAL(&ledMux);
+   if(evento==EventoLed::IniciarTroca)leds.iniciarTroca(millis());
+   else if(evento==EventoLed::CancelarTroca)leds.cancelarTroca();
+   else if(evento==EventoLed::Confirmacao)leds.piscar(CorLed::Verde,millis(),200);
+   EstadoLeds estado=leds.estado(millis(),WiFi.status()==WL_CONNECTED&&serverConnected,roomAvailableLed);
+   digitalWrite(LED_RED_PIN,estado.vermelho?HIGH:LOW);
+   digitalWrite(LED_GREEN_PIN,estado.verde?HIGH:LOW);
+   digitalWrite(LED_YELLOW_PIN,estado.amarelo?HIGH:LOW);
+   vTaskDelay(pdMS_TO_TICKS(25));
   }else vTaskDelay(pdMS_TO_TICKS(500));
  }
 }
@@ -252,7 +271,7 @@ void loop(){
   if(resultado==ResultadoConfirmacaoTag::Confirmada){
    // A autorização e o estado precisam continuar válidos ao final da espera.
    if(exigeConfirmacaoTroca(uid))readCard(uid,true);
-   else screen("Troca cancelada","Estado alterado");
+   else {sinalizarLed(EventoLed::CancelarTroca);screen("Troca cancelada","Estado alterado");}
   }
   return;
  }
@@ -260,7 +279,7 @@ void loop(){
  if(confirmacaoTroca.confirmada())return;
  if(uid==heldUid)return;heldUid=uid;
  if(exigeConfirmacaoTroca(uid)){
-  if(confirmacaoTroca.iniciar(uid.c_str(),now))screen("Manter cartao","Aguarde 3 segundos");
+  if(confirmacaoTroca.iniciar(uid.c_str(),now)){sinalizarLed(EventoLed::IniciarTroca);screen("Manter cartao","Aguarde 3 segundos");}
   return;
  }
  // Cabinet has no server: retain a bounded rolling log instead of filling forever.

@@ -90,6 +90,9 @@ Para outro professor autorizado assumir a sala em uso, mantenha a tag no leitor
 por 3 segundos. Um toque curto não abre nem troca o responsável. Depois da troca,
 retire a tag antes de aproximá-la novamente para encerrar a atividade. A tabela
 de horários ainda não é consultada automaticamente.
+Se os LEDs estiverem instalados, a espera mostra vermelho, amarelo e verde em
+sequência. A transferência ou o movimento concluído localmente gera três
+piscadas verdes; isso também funciona sem conexão ao servidor.
 
 As cores são: verde disponível, vermelho em uso, laranja atividade da TI e
 amarelo atividade da limpeza. TI em uma sala ocupada por outra pessoa abre a

@@ -34,6 +34,8 @@ jobs:
           /tmp/regras-test
           g++ -std=c++11 -Wall -Wextra -pedantic tests/confirmacao_tag_test.cpp -o /tmp/confirmacao-tag-test
           /tmp/confirmacao-tag-test
+          g++ -std=c++11 -Wall -Wextra -pedantic tests/indicacao_led_test.cpp -o /tmp/indicacao-led-test
+          /tmp/indicacao-led-test
       - name: Banco descartável e instalação repetível
         env:
           MYSQL_PWD: test-only-password

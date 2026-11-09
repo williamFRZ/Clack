@@ -239,7 +239,9 @@ controlada; não reutilize uma identidade com a sequência zerada.
 Confira pinagem, alimentação e calibração do servo em [GESTAO.md](GESTAO.md).
 Na tranca 204 sem OLED, use os LEDs descritos ali: vermelho para ocupado/erro,
 verde para disponível e amarelo piscando a cada 500 ms enquanto não sincroniza
-com o servidor. Antes de instalar em uma porta, teste RFID, LEDs, movimento,
+com o servidor. Na confirmação de troca, vermelho, amarelo e verde acendem em
+sequência por um segundo; a ação concluída localmente é indicada por três
+piscadas verdes de 200 ms ligado e 200 ms desligado. Antes de instalar em uma porta, teste RFID, LEDs, movimento,
 falta de rede e corte/retorno de energia na bancada.
 
 ## 9. Cadastrar cartões e usar o painel

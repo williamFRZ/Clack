@@ -65,6 +65,8 @@
 - [x] Instalar PlatformIO Core 6.2.0 no ambiente virtual do usuário e compilar o firmware atualizado da tranca 204.
 - [ ] Gravar o firmware atualizado na tranca 204 e medir na bancada o tempo entre comando/leitura e atualização visual do painel.
 - [x] Implementar no firmware da tranca a sinalização por três LEDs: verde disponível, vermelho ocupado/indisponível e amarelo piscando a cada 500 ms sem sincronização válida (compilação PlatformIO validada).
+- [x] Implementar indicação temporária da troca em vermelho/amarelo/verde e confirmação local com três piscadas verdes de 200 ms ligado e 200 ms desligado; testes automatizados, compilação e gravação na tranca 204 concluídos em 09/11/2026.
+- [ ] Instalar os LEDs e validar fisicamente a sequência, cancelamento, abertura/fechamento e retorno da sinalização de conexão, inclusive offline.
 - [ ] Ligar e validar fisicamente os três LEDs da tranca 204, incluindo queda e retorno da conexão ao servidor.
 - [ ] Revisar/importar dados antigos, se necessários.
 - [ ] Criar cadastrador dedicado para a portaria, substituindo o Pelado desmontado para virar a tranca Clack; montar e cadastrar o novo dispositivo/token.
