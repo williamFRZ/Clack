@@ -1,6 +1,8 @@
 #!/bin/sh
 # Uses its own Compose project and disposable volumes; never the normal clack project.
 set -eu
+cd "$(dirname "$0")/.."
+export CLACK_TEST_DISPOSABLE=1
 export CLACK_DB_PASSWORD=docker-test-app-password
 export CLACK_DB_ROOT_PASSWORD=docker-test-root-password
 export CLACK_BIND_IP=127.0.0.1
@@ -8,7 +10,7 @@ export CLACK_PORT=${CLACK_TEST_PORT:-18080}
 export CLACK_TEST_URL="http://127.0.0.1:$CLACK_PORT/"
 project="clack-test-$(date +%s)-$$"
 temporary=$(mktemp -d)
-dc() { docker compose --env-file /dev/null -p "$project" "$@"; }
+dc() { docker compose -f compose.yaml --env-file /dev/null -p "$project" "$@"; }
 cleanup() {
     status=$?
     if [ "$status" -ne 0 ]; then dc logs --no-color; fi

@@ -147,7 +147,7 @@ consulta históricos e envia comandos. Cada pessoa deve usar sua própria conta.
    Use Andar 1, Andar 2 ou Andar 3. “Térreo” de cadastros antigos é mostrado no
    Andar 1.
 2. No formulário de cadastro, a planta muda conforme o andar escolhido.
-   Clique no centro da sala para posicionar o quadrado antes de **Salvar**.
+   Clique no centro da sala para posicionar o marcador de porta antes de **Salvar**.
    Use zoom se necessário; X/Y são preenchidos automaticamente e podem ser
    editados pelo teclado. Trocar de andar limpa a posição anterior.
    Para ajustar depois, em Ambientes escolha o andar, clique em **Posicionar
@@ -167,7 +167,7 @@ Para o primeiro cadastro, siga [Configurar a primeira sala](PRIMEIRA-SALA.md).
 | Vermelho | Atividade de outro responsável |
 | Cinza com `!` | Manutenção ou erro |
 
-Passe o mouse, use foco pelo teclado ou toque no quadrado para consultar
+Passe o mouse, use foco pelo teclado ou toque no ícone da porta para consultar
 responsável, matrícula/NDA e início da atividade. Consultar detalhes não abre
 a tranca. Horário desconhecido fica identificado; o painel não inventa a hora.
 
@@ -256,6 +256,11 @@ falta de rede e corte/retorno de energia na bancada.
 6. Para intervenção da portaria, abra os detalhes da sala e envie o comando
    adequado. Comandos têm expiração e confirmação; o dispositivo precisa
    estar conectado para recebê-los.
+
+O painel pode ser usado em português ou espanhol do Uruguai. Escolha o idioma
+no canto superior direito da tela de entrada ou do painel; a preferência fica
+salva no navegador. Na planta, cada sala aparece como uma porta colorida pelo
+estado, e o clique/toque abre os mesmos detalhes e comandos.
 
 Resetar um cartão desvincula seu UID do cadastro; não formata o chip RFID.
 Uma tranca sem primeira sincronização não aceita cartões. Offline conserva
@@ -450,3 +455,13 @@ As trancas aplicam a revogação ao sincronizar com o servidor; uma tranca
 offline pode continuar usando o cache antigo até reconectar.
 
 Todo novo login abre em **Ambientes**, mesmo após sair de outra aba ou trocar de usuário. **Configurações** é exibida e consultada apenas por administradores.
+
+
+### Acompanhamento de comandos
+Nos detalhes da sala, o último comando mostra envio, espera, confirmação pelo dispositivo ou expiração. Durante envio/espera, os botões ficam desabilitados. A confirmação mostra o tempo desde a criação do comando, com resolução de segundos; não mede a posição física da porta. O painel atualiza a cada segundo quando visível.
+
+
+Diagnóstico de conexão: nos detalhes da sala, consulte o último contato e seu tempo decorrido. O painel diferencia ausência de tranca cadastrada, primeiro contato pendente, online e ausência de comunicação recente. A causa da desconexão exige diagnóstico; o estado da conexão não representa a posição física da porta.
+
+
+Backup assistido: execute `python bin/backup.py` na pasta do projeto. Consulte `docs/BACKUP-REDE.md` para integridade, recuperação e planejamento do servidor central em rede. Agendamento, HTTPS e validação com múltiplas máquinas ainda precisam ser configurados/testados.

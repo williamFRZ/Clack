@@ -12,6 +12,7 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
   const historyRequests = [];
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  page.on("dialog", (dialog) => dialog.accept());
   const sample = {
     salas: [
       {
@@ -100,6 +101,12 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
       savedRoom = r.request().postDataJSON();
       sample.salas.push({ ...savedRoom, id: 99, estado: "disponivel", online: 0 });
       data = { ok: true };
+    } else if (action === "comando") {
+      if (r.request().headers()["x-csrf-token"] !== "test") throw Error("CSRF ausente no comando");
+      const body = r.request().postDataJSON();
+      const room = sample.salas.find((item) => item.id === body.sala);
+      room.estado = body.comando === "manutencao" ? "manutencao" : body.comando === "liberar" ? "disponivel" : room.estado;
+      data = { ok: true };
     }
     else if (action === "historico") {
       historyRequests.push(new URL(r.request().url()).searchParams);
@@ -113,10 +120,24 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
     });
   });
   await page.goto("http://127.0.0.1:8090/painel/");
+  const language = page.locator(".language-trigger");
+  await language.click();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await page.getByRole("heading", { name: "Bienvenido a portería." }).waitFor();
+  await page.getByLabel("Usuario", { exact: true }).waitFor();
+  await page.reload();
+  await page.getByRole("heading", { name: "Espacios del campus", exact: true }).waitFor();
+  if (await language.getAttribute("data-language") !== "es-UY") throw Error("Preferencia de idioma no persistió al recargar");
+  await language.click();
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Enter");
   await page.getByLabel("Login", { exact: true }).fill("admin");
   await page.getByLabel("Senha", { exact: true }).fill("test-password");
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await page.getByRole("heading", { name: "Ambientes do campus" }).waitFor();
+  await page.getByText("CLACK / PÁGINA INICIAL", { exact: true }).waitFor();
+  if (await page.locator(".account .language-picker").count() !== 1 || await page.locator("header .language-picker").count() !== 0) throw Error("Seletor de idioma fora da conta da barra lateral");
   const floors = page.getByRole("combobox", { name: "Andar", exact: true });
   if ((await floors.locator("option").allTextContents()).join(",") !== "Andar 1,Andar 2,Andar 3") throw Error("Seleção de andares incorreta");
   async function checkPlan(floor) {
@@ -130,6 +151,7 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
   }
   await checkPlan(1);
   if (await page.locator(".room-marker").count() !== 5) throw Error("Marcadores ausentes");
+  if (await page.locator(".room-marker .door-marker-icon").count() !== 5) throw Error("Ícones de porta ausentes nos marcadores");
   for (const [id, color] of [[1, "available"], [2, "occupied"], [4, "cleaning"], [5, "it"], [3, "maintenance"]]) {
     if (!(await page.locator(`[data-room-id="${id}"]`).getAttribute("class")).includes(`occupancy-${color}`)) throw Error("Cor incorreta");
   }
@@ -148,6 +170,16 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
   const lastUser = availableDialog.getByText("Último usuário: Última Pessoa", { exact: true });
   await lastUser.waitFor();
   if (!(await lastUser.getAttribute("class")).includes("last-room-user")) throw Error("Último usuário sem destaque laranja");
+  const roomFloor = availableDialog.getByRole("heading", { name: "Térreo", exact: true });
+  await roomFloor.waitFor();
+  await availableDialog.locator(".room-environment-name").getByText("Sala 101", { exact: true }).waitFor();
+  if (await availableDialog.getByRole("heading", { name: "Comandos recentes", exact: true }).count()) throw Error("Comandos recentes ainda aparecem no detalhe da sala");
+  const maintenanceButton = availableDialog.getByRole("button", { name: "Trancar para manutenção", exact: true });
+  if (await maintenanceButton.evaluate((button) => getComputedStyle(button).backgroundColor) !== "rgb(220, 38, 38)") throw Error("Ação de manutenção sem cor vermelha");
+  await maintenanceButton.click();
+  const endMaintenanceButton = availableDialog.getByRole("button", { name: "Encerrar manutenção", exact: true });
+  await endMaintenanceButton.waitFor();
+  if (await endMaintenanceButton.evaluate((button) => getComputedStyle(button).backgroundColor) !== "rgb(21, 128, 61)") throw Error("Ação para encerrar manutenção sem cor verde");
   await availableDialog.getByRole("button", { name: "Fechar", exact: true }).click();
   await page.getByRole("button",{name:"Aumentar zoom",exact:true}).click();
   if((await page.getByLabel("Nível de zoom",{exact:true}).textContent())!=="150%") throw Error("Zoom inválido");
@@ -235,7 +267,7 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
   if (historyRequests.at(-1).get("sala") !== "2" || historyRequests.at(-1).has("inicio") || historyRequests.at(-1).has("fim")) throw Error("Voltar às atividades gerais não preserva apenas o filtro de sala");
   if (errors.length) throw Error(errors.join("\n"));
   console.log(
-    "UI: login, andares, cores, mouse/teclado/toque, matrícula, horário, posicionamento, TI global, tema e largura móvel OK (API simulada).",
+    "UI: login, idioma PT/ES persistente, ícones/cores de portas, andares, mouse/teclado/toque, horário, posicionamento, TI global, tema e largura móvel OK (API simulada).",
   );
   await browser.close();
 })().catch((e) => {

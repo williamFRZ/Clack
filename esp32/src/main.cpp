@@ -157,6 +157,7 @@ void syncServer(){
  state["estado"]=action=="abrir"?"em_uso":action=="manutencao"?"manutencao":"disponivel";
  state["responsavel"]=nullptr;state["comando"]=cmd["id"];state["pending"]=true;
  finishMotion(action=="abrir");screen("Comando da portaria",action);
+ lastSync=0; // Publique o estado confirmado logo após o movimento, sem esperar o próximo ciclo.
 }
 void statusLedTask(void*){
  bool yellowOn=false;
@@ -208,7 +209,7 @@ void loop(){
    if(wifiStatus==WL_CONNECTED)Serial.printf("WiFi conectado: IP=%s gateway=%s RSSI=%d dBm\n",WiFi.localIP().toString().c_str(),WiFi.gatewayIP().toString().c_str(),WiFi.RSSI());
   }
   if(WiFi.status()!=WL_CONNECTED&&now-lastWifi>=10000){WiFi.begin(WIFI_SSID,WIFI_PASSWORD);lastWifi=now;}
-  if(now-lastSync>=2000)syncServer();
+  if(now-lastSync>=1000)syncServer();
  }
  if(now-lastRead<100)return;lastRead=now;
  byte atqa[2],len=2;auto status=rfid.PICC_WakeupA(atqa,&len);

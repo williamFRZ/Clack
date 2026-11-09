@@ -14,20 +14,20 @@ export function roomStatus(room) {
   return ROOM_STATUSES[1];
 }
 
-export function usageDate(value) {
-  if (!value) return "Horário não informado";
+export function usageDate(value, locale = "pt-BR") {
+  if (!value) return locale === "es-UY" ? "Hora no informada" : "Horário não informado";
   const parsed = new Date(value.replace(" ", "T") + "Z");
-  if (Number.isNaN(parsed.getTime())) return "Horário não informado";
-  return parsed.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  if (Number.isNaN(parsed.getTime())) return locale === "es-UY" ? "Hora no informada" : "Horário não informado";
+  return parsed.toLocaleString(locale, { timeZone: "America/Montevideo" });
 }
 
-export function roomUsage(room) {
+export function roomUsage(room, locale = "pt-BR") {
   if (room.estado !== "em_uso") return null;
   return {
-    name: room.responsavel_nome || (room.responsavel == null ? "Abertura pela portaria / sem responsável" : "Responsável não informado"),
-    enrollment: Number(room.responsavel_externo) ? "NDA (pessoa externa)" : room.responsavel_matricula || "Não informada",
-    since: room.uso_desde ? usageDate(room.uso_desde) : "Horário exato desconhecido",
-    received: !room.uso_desde && room.uso_recebido_em ? usageDate(room.uso_recebido_em) : null,
+    name: room.responsavel_nome || (room.responsavel == null ? (locale === "es-UY" ? "Apertura por portería / sin responsable" : "Abertura pela portaria / sem responsável") : (locale === "es-UY" ? "Responsable no informado" : "Responsável não informado")),
+    enrollment: Number(room.responsavel_externo) ? (locale === "es-UY" ? "NDA (persona externa)" : "NDA (pessoa externa)") : room.responsavel_matricula || (locale === "es-UY" ? "No informada" : "Não informada"),
+    since: room.uso_desde ? usageDate(room.uso_desde, locale) : (locale === "es-UY" ? "Hora exacta desconocida" : "Horário exato desconhecido"),
+    received: !room.uso_desde && room.uso_recebido_em ? usageDate(room.uso_recebido_em, locale) : null,
   };
 }
 

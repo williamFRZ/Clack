@@ -27,16 +27,21 @@ if($action==='painel') {
  CASE WHEN a.estado='disponivel' THEN (SELECT ev.nome FROM eventos ev WHERE ev.ambiente_id=a.id
  AND ev.resultado IN ('atividade_iniciada','responsabilidade_transferida','atividade_encerrada')
  AND ev.nome IS NOT NULL AND ev.nome<>'' ORDER BY ev.id DESC LIMIT 1) ELSE NULL END ultimo_usuario_nome,
+ cmd.id comando_id,cmd.acao comando_acao,
+ CASE WHEN cmd.id IS NULL THEN NULL WHEN cmd.confirmado_em IS NOT NULL THEN 'confirmado'
+ WHEN cmd.expira_em<=UTC_TIMESTAMP() THEN 'expirado' ELSE 'pendente' END comando_status,
+ TIMESTAMPDIFF(SECOND,cmd.criado_em,cmd.confirmado_em) comando_segundos,
+ TIMESTAMPDIFF(SECOND,d.ultima_conexao,UTC_TIMESTAMP()) contato_segundos,
  d.id dispositivo_id,d.ultima_conexao,d.versao,IF(d.ultima_conexao>UTC_TIMESTAMP()-INTERVAL 20 SECOND,1,0) online
  FROM ambientes a LEFT JOIN cartoes c ON c.id=a.responsavel
  LEFT JOIN dispositivos d ON d.ambiente_id=a.id AND d.ativo=1
+ LEFT JOIN comandos cmd ON cmd.id=(SELECT MAX(c2.id) FROM comandos c2 WHERE c2.dispositivo_id=d.id)
  LEFT JOIN eventos e ON e.id=(SELECT ev.id FROM eventos ev WHERE ev.dispositivo_id=d.id AND ev.sequencia<=d.ultima_sequencia
  AND ev.resultado IN ('atividade_iniciada','responsabilidade_transferida','atividade_encerrada','portaria_abrir','portaria_fechar','portaria_manutencao','portaria_liberar','reinicio_durante_movimento')
  ORDER BY ev.sequencia DESC LIMIT 1)
  ORDER BY a.andar,a.nome"),
  'cartoes'=>rows('SELECT * FROM cartoes ORDER BY nome'),'permissoes'=>rows('SELECT * FROM permissoes'),
- 'dispositivos'=>rows('SELECT id,nome,tipo,ambiente_id,ativo,ultima_conexao FROM dispositivos ORDER BY nome'),
- 'comandos'=>rows('SELECT c.*,o.nome operador FROM comandos c JOIN operadores o ON o.id=c.operador_id ORDER BY c.id DESC LIMIT 50')]);
+ 'dispositivos'=>rows('SELECT id,nome,tipo,ambiente_id,ativo,ultima_conexao FROM dispositivos ORDER BY nome')]);
 }
 if($action==='historico') {
  exigir_metodo('GET'); $params=[]; $where='WHERE 1=1'; $auditWhere=''; $auditParams=[];
@@ -73,6 +78,14 @@ case 'cartao':
   $capture=one('SELECT * FROM capturas WHERE id=? AND operador_id=? AND consumida=0 AND expira_em>UTC_TIMESTAMP() FOR UPDATE',[txt($b,'captura',32),$op['id']]);
   if(!$capture||!$capture['uid']) fail('Aproxime o cartão do cadastrador e tente novamente.');
   $uid=$capture['uid']; q('UPDATE capturas SET consumida=1 WHERE id=?',[$capture['id']]);
+ } elseif(array_key_exists('uid',$b)) {
+  if(!is_string($b['uid'])) fail('UID inválido.');
+  $manualUid=strtoupper(trim($b['uid']));
+  if($manualUid!=='') {
+   $uidBytes=explode(':',$manualUid);
+   if(!preg_match('/^(?:[0-9A-F]{2}:)*[0-9A-F]{2}$/D',$manualUid)||!in_array(count($uidBytes),[4,7,10],true)) fail('UID inválido. Use 4, 7 ou 10 bytes hexadecimais separados por dois-pontos.');
+   $uid=$manualUid;
+  }
  }
  if(!$cid&&!$uid) fail('Capture um cartão antes de cadastrar.');
  if($uid && one('SELECT id FROM cartoes WHERE uid=? AND id<>?',[$uid,$cid??0])) fail('Este cartão já está cadastrado.',409);

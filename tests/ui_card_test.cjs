@@ -28,9 +28,9 @@ const { chromium } = require(process.env.CLACK_PLAYWRIGHT || '../frontend/node_m
       if (action === 'ler_captura') data = { uid: `AA:BB:CC:${String(started).padStart(2, '0')}` };
       if (action === 'cancelar_captura') { cancelled++; capture = ''; }
       if (action === 'cartao') {
-        assert.ok(body.captura, 'Cadastro deve enviar a leitura correspondente');
+        assert.ok(body.captura || body.uid, 'Cadastro deve enviar a leitura ou o UID manual');
         saved++;
-        sample.cartoes.push({ ...body, id: ++nextCardId, uid: `AA:BB:CC:${String(started).padStart(2, '0')}`, ativo: 1 });
+        sample.cartoes.push({ ...body, id: ++nextCardId, uid: body.uid || `AA:BB:CC:${String(started).padStart(2, '0')}`, ativo: 1 });
         capture = '';
       }
       if (action === 'revogar_cartao') {
@@ -87,7 +87,18 @@ const { chromium } = require(process.env.CLACK_PLAYWRIGHT || '../frontend/node_m
     const firstCard = sample.cartoes.find(c => c.nome === 'Primeiro cartão');
     assert.equal(firstCard.ativo, 0);
     assert.equal(firstCard.uid, 'AA:BB:CC:02');
+    await page.getByRole('button', { name: 'Novo cartão', exact: true }).click();
+    await dialog.getByLabel('Nome', { exact: true }).fill('Cadastro manual');
+    await dialog.getByLabel('Matrícula', { exact: true }).fill('300');
+    await dialog.getByRole('tab', { name: 'Inserir UID manualmente' }).click();
+    const manualUid = dialog.getByLabel('UID da tag');
+    await manualUid.fill('39664ca3');
+    assert.equal(await manualUid.inputValue(), '39:66:4C:A3', 'UID manual recebe dois-pontos e letras maiúsculas automaticamente');
+    await dialog.getByRole('button', { name: 'Salvar cadastro', exact: true }).click();
+    await dialog.waitFor({ state: 'hidden' });
+    assert.equal(saved, 3, 'Cadastro manual envia UID sem depender de leitor');
+    assert.equal(sample.cartoes.find(c => c.nome === 'Cadastro manual').uid, '39:66:4C:A3');
     assert.deepEqual(errors, []);
-    console.log('UI: liberar ao fechar, dois cadastros consecutivos e revogar acesso preservando UID OK (API simulada).');
+    console.log('UI: captura, cadastro manual de UID e revogação preservando UID OK (API simulada).');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });

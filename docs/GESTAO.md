@@ -87,13 +87,13 @@ Na tranca 204 sem OLED, use a pinagem que já está montada: RC522 SS/SCK/MISO/M
 
 ## Plantas por andar
 
-O painel tem seleção fixa de Andar 1, Andar 2 e Andar 3, com as plantas estilizadas em paisagem e salas filtradas. Cadastros antigos chamados Térreo aparecem no Andar 1, sem alteração automática no banco.
+O painel tem seleção fixa de Andar 1, Andar 2 e Andar 3, com as plantas estilizadas em paisagem e salas filtradas. Cadastros antigos chamados Térreo aparecem no Andar 1, sem alteração automática no banco. A interface está disponível em português e espanhol do Uruguai: use **Idioma** no canto superior direito da tela de entrada ou do painel. A escolha fica salva naquele navegador.
 
 As plantas técnicas originais permanecem em `frontend/src/assets/plantas/originais/`, fora do build. O visualizador usa zoom de 100% a 300% e permite abrir a imagem completa.
 
 ### Marcadores e dados de uso
 
-| Cor do quadrado | Atividade |
+| Cor da porta | Atividade |
 |---|---|
 | Verde | Disponível |
 | Amarelo | Em uso pela limpeza |
@@ -101,7 +101,7 @@ As plantas técnicas originais permanecem em `frontend/src/assets/plantas/origin
 | Vermelho | Em uso por professor, aluno autorizado ou outro responsável |
 | Cinza com `!` | Manutenção / erro (não se confunde com ocupação) |
 
-Mouse e foco pelo teclado exibem responsável, matrícula (ou NDA) e data/hora. Clique/toque abre os detalhes e intervenções da portaria; consultar não aciona a tranca. Quando a sala está disponível, os detalhes mostram em laranja o último usuário registrado em uma atividade, logo abaixo do estado. O horário é apresentado em `America/Sao_Paulo` e vem do último evento de início/transferência aceito pelo servidor. A troca de professor passa a mostrar desde quando o **responsável atual** assumiu a sala. Negativas e reenvios não redefinem esse início. Quando o ESP32 não tinha relógio válido, o início fica desconhecido e o recebimento é mostrado separadamente, sem ser apresentado como horário exato. Offline preserva a última atividade conhecida e exibe um aviso.
+Mouse e foco pelo teclado exibem responsável, matrícula (ou NDA) e data/hora. Clique/toque abre os detalhes e intervenções da portaria; consultar não aciona a tranca. Quando a sala está disponível, os detalhes mostram em laranja o último usuário registrado em uma atividade, logo abaixo do estado. O horário é apresentado no fuso de Montevidéu. O comportamento dos marcadores e do estado offline permanece o mesmo nos dois idiomas.
 
 O banco passa à versão 3. Execute `php bin/configurar.php` em instalações existentes antes de usar o novo painel: são adicionados `mapa_x`/`mapa_y` e o perfil `ti`, sem apagar salas, cartões ou coordenadas antigas. Os campos antigos `x`/`y` não são convertidos automaticamente porque se referiam ao mapa esquemático, não à planta.
 
@@ -183,3 +183,13 @@ As trancas aplicam a revogação ao sincronizar com o servidor; uma tranca
 offline pode continuar usando o cache antigo até reconectar.
 
 Todo novo login abre em **Ambientes**, mesmo após sair de outra aba ou trocar de usuário. **Configurações** é exibida e consultada apenas por administradores.
+
+
+### Acompanhamento de comandos
+Nos detalhes da sala, o último comando mostra envio, espera, confirmação pelo dispositivo ou expiração. Durante envio/espera, os botões ficam desabilitados. A confirmação mostra o tempo desde a criação do comando, com resolução de segundos; não mede a posição física da porta. O painel atualiza a cada segundo quando visível.
+
+
+Diagnóstico de conexão: nos detalhes da sala, consulte o último contato e seu tempo decorrido. O painel diferencia ausência de tranca cadastrada, primeiro contato pendente, online e ausência de comunicação recente. A causa da desconexão exige diagnóstico; o estado da conexão não representa a posição física da porta.
+
+
+Backup assistido: execute `python bin/backup.py` na pasta do projeto. Consulte `docs/BACKUP-REDE.md` para integridade, recuperação e planejamento do servidor central em rede. Agendamento, HTTPS e validação com múltiplas máquinas ainda precisam ser configurados/testados.

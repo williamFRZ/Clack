@@ -12,7 +12,7 @@ posicionar a sala; o hardware é necessário para abrir a tranca e registrar uso
 4. Escolha **Andar 1**, **Andar 2** ou **Andar 3**.
 5. Escolha a **Categoria**: Sala de aula, Administrativa ou Outra.
 6. A planta do andar selecionado aparece no formulário. Clique no centro da
-   sala para posicionar o quadrado; X/Y são preenchidos automaticamente.
+   sala para posicionar o marcador de porta; X/Y são preenchidos automaticamente.
    Use zoom se necessário e clique novamente para corrigir. Ao trocar de andar,
    a seleção de posição é limpa para você escolher o local na nova planta.
 7. Clique em **Salvar**.
@@ -21,7 +21,7 @@ Você terá um cadastro disponível, com a posição escolhida. Se deixar X/Y va
 a posição será provisória e poderá ser definida no passo 2. Criar o ambiente
 não associa uma tranca nem concede acesso a cartões automaticamente.
 
-## 2. Colocar o quadrado na planta
+## 2. Posicionar o marcador da porta na planta
 
 1. Abra **Ambientes** e selecione o mesmo andar.
 2. Clique em **Posicionar salas**.
@@ -30,7 +30,7 @@ não associa uma tranca nem concede acesso a cartões automaticamente.
 5. Aguarde a mensagem **Posição na planta salva** e clique em
    **Concluir posicionamento**.
 
-O quadrado verde indica uma sala disponível. As coordenadas são percentuais
+O ícone de porta verde indica uma sala disponível. As coordenadas são percentuais
 e continuam válidas com zoom e no celular. Para corrigir, repita o procedimento
 ou abra **Configurações → Editar posição**.
 
@@ -117,3 +117,13 @@ As trancas aplicam a revogação ao sincronizar com o servidor; uma tranca
 offline pode continuar usando o cache antigo até reconectar.
 
 Todo novo login abre em **Ambientes**, mesmo após sair de outra aba ou trocar de usuário. **Configurações** é exibida e consultada apenas por administradores.
+
+
+### Acompanhamento de comandos
+Nos detalhes da sala, o último comando mostra envio, espera, confirmação pelo dispositivo ou expiração. Durante envio/espera, os botões ficam desabilitados. A confirmação mostra o tempo desde a criação do comando, com resolução de segundos; não mede a posição física da porta. O painel atualiza a cada segundo quando visível.
+
+
+Diagnóstico de conexão: nos detalhes da sala, consulte o último contato e seu tempo decorrido. O painel diferencia ausência de tranca cadastrada, primeiro contato pendente, online e ausência de comunicação recente. A causa da desconexão exige diagnóstico; o estado da conexão não representa a posição física da porta.
+
+
+Backup assistido: execute `python bin/backup.py` na pasta do projeto. Consulte `docs/BACKUP-REDE.md` para integridade, recuperação e planejamento do servidor central em rede. Agendamento, HTTPS e validação com múltiplas máquinas ainda precisam ser configurados/testados.

@@ -2,7 +2,9 @@
 import json, os, urllib.request, urllib.error, http.cookiejar
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
-BASE=os.environ.get('CLACK_TEST_URL', 'http://127.0.0.1:8080/').rstrip('/')+'/'
+if os.environ.get('CLACK_TEST_DISPOSABLE') != '1' or not os.environ.get('CLACK_TEST_URL'):
+    raise SystemExit('Use apenas ambiente descartavel: defina CLACK_TEST_DISPOSABLE=1 e CLACK_TEST_URL explicitamente.')
+BASE=os.environ['CLACK_TEST_URL'].rstrip('/')+'/'
 jar=http.cookiejar.CookieJar()
 client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
 csrf=''
@@ -109,11 +111,20 @@ tomorrow=today+timedelta(days=1)
 audit_query='historico&inicio='+quote(today.strftime('%Y-%m-%d %H:%M:%S'))+'&fim='+quote(tomorrow.strftime('%Y-%m-%d %H:%M:%S'))
 assert api(audit_query)['auditoria']
 api('comando',{'sala':room,'comando':'abrir'})
+status=next(x for x in api('painel')['salas'] if x['id']==room)
+assert status['comando_status']=='pendente'
+assert status['comando_acao']=='abrir'
+assert status['comando_segundos'] is None
+assert int(status['contato_segundos'])>=0
 command=sync(d,{**closed,'eventos':[]})['comando']
 assert command['acao']=='abrir'
 api('comando',{'sala':room,'comando':'fechar'},409)
 assert next(x for x in api('painel')['salas'] if x['id']==room)['estado']=='disponivel'
 sync(d,{**closed,'eventos':[],'comando_confirmado':command['id']})
+status=next(x for x in api('painel')['salas'] if x['id']==room)
+assert status['comando_status']=='confirmado'
+assert int(status['comando_id'])==int(command['id'])
+assert int(status['comando_segundos'])>=0
 api('revogar_cartao',{'id':card['id']},403,use_csrf=False)
 api('revogar_cartao',{'id':card['id']})
 revoked=next(c for c in api('painel')['cartoes'] if c['id']==card['id'])
