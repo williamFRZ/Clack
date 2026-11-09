@@ -54,7 +54,7 @@ Para começar os cadastros, siga **[Configurar a primeira sala](docs/PRIMEIRA-SA
 
 - Contas individuais de portaria/admin, troca de senha, auditoria e rotação de tokens.
 - Cartões com matrícula/NDA, cinco perfis, TI com acesso global e entrada em sala ocupada sem assumir a atividade; salas selecionáveis para os demais e leitura em cadastrador dedicado.
-- Professor assume responsabilidade de sala em uso; aluno só inicia atividade em sala disponível.
+- Professor autorizado assume responsabilidade de sala em uso mantendo a tag no leitor por 3 segundos; um toque curto não troca o responsável nem aciona o servo. Aluno só inicia atividade em sala disponível.
 - Comandos remotos com validade e confirmação; histórico sem duplicação na reconexão.
 - Cache de permissões e até 64 eventos persistentes no ESP32; eventos sem hora conhecida ficam identificados.
 - Interface clara/escura e em português/espanhol (Uruguai), com idioma persistido por navegador; plantas por andar com portas coloridas pelo estado e posição ajustável por clique.
@@ -87,6 +87,8 @@ Todo novo login abre em **Ambientes**, mesmo após sair de outra aba ou trocar d
 
 ### Acompanhamento de comandos
 Nos detalhes da sala, o último comando mostra envio, espera, confirmação pelo dispositivo ou expiração. Durante envio/espera, os botões ficam desabilitados. A confirmação mostra o tempo desde a criação do comando, com resolução de segundos; não mede a posição física da porta. O painel atualiza a cada segundo quando visível.
+
+O histórico é atualizado automaticamente a cada 3 segundos enquanto a seção está aberta, preservando os filtros e a página de eventos anteriores.
 
 
 Diagnóstico de conexão: nos detalhes da sala, consulte o último contato e seu tempo decorrido. O painel diferencia ausência de tranca cadastrada, primeiro contato pendente, online e ausência de comunicação recente. A causa da desconexão exige diagnóstico; o estado da conexão não representa a posição física da porta.

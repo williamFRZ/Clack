@@ -10,6 +10,7 @@
 #include <Adafruit_SSD1306.h>
 #include <time.h>
 #include "regras.h"
+#include "confirmacao_tag.h"
 #if __has_include("config.local.h")
 #include "config.local.h"
 #elif defined(CLACK_CI)
@@ -38,8 +39,10 @@ JsonDocument state;
 bool healthy=false,displayReady=false;
 volatile bool serverConnected=false,roomAvailableLed=true;
 int slot=-1;
-unsigned long lastSync=0,lastWifi=0,lastRead=0,lastSeen=0;
+unsigned long lastSync=0,lastWifi=0,lastRead=0;
 String heldUid,capture;
+ConfirmacaoTag confirmacaoTroca;
+ConfirmacaoRetiradaTag retiradaTag;
 wl_status_t lastWifiStatus=WL_NO_SHIELD;
 constexpr int MAX_EVENTS=64;
 
@@ -69,6 +72,9 @@ bool persist(){
  slot=next;return true;
 }
 void beep(bool ok){digitalWrite(BUZZER_PIN,HIGH);delay(ok?70:250);digitalWrite(BUZZER_PIN,LOW);}
+void informarCancelamento(ResultadoConfirmacaoTag resultado){
+ if(resultado==ResultadoConfirmacaoTag::Cancelada){screen("Troca cancelada","Retire e tente novamente");beep(false);}
+}
 bool event(const char* result,JsonObjectConst card=JsonObjectConst()){
  JsonArray events=state["eventos"].as<JsonArray>();
  if(events.size()>=MAX_EVENTS){screen("Historico cheio","Reconecte ao servidor");beep(false);return false;}
@@ -76,7 +82,7 @@ bool event(const char* result,JsonObjectConst card=JsonObjectConst()){
  JsonObject e=events.add<JsonObject>();e["sequencia"]=seq;e["resultado"]=result;
  if(!card.isNull()){e["uid"]=card["uid"];e["nome"]=card["nome"];e["perfil"]=card["perfil"];}
  time_t now=time(nullptr);if(now>=1704067200)e["timestamp"]=(long long)now;
- lastSync=0; // Envie eventos de acesso imediatamente; o intervalo periódico segue em 2 s.
+ lastSync=0; // Envie eventos de acesso na próxima sincronização.
  return true;
 }
 void actuate(bool open){
@@ -89,7 +95,15 @@ void finishMotion(bool open){
  if(!persist())return;actuate(open);state["pending"]=false;
  if(!persist())return;beep(true);
 }
-void readCard(const String& uid){
+bool exigeConfirmacaoTroca(const String& uid){
+ if(DEVICE_MODE!=0||!healthy)return false;
+ for(JsonObjectConst c:state["cartoes"].as<JsonArrayConst>()){
+  if(uid==c["uid"].as<String>())
+   return decidir(state["estado"]|"erro",state["responsavel"]|0,c["id"]|0,c["perfil"]|"")==Decisao::Transferir;
+ }
+ return false;
+}
+void readCard(const String& uid, bool trocaConfirmada=false){
  if(DEVICE_MODE==1){
   if(capture.isEmpty()||WiFi.status()!=WL_CONNECTED){screen("Sem captura ativa");beep(false);return;}
   HTTPClient http;http.setConnectTimeout(1500);http.setTimeout(1500);http.begin(SERVER_URL);
@@ -108,6 +122,7 @@ void readCard(const String& uid){
   screen("Acesso negado");beep(false);return;
  }
  auto decision=decidir(state["estado"]|"erro",state["responsavel"]|0,person["id"]|0,person["perfil"]|"");
+ if(decision==Decisao::Transferir&&!trocaConfirmada)return;
  const char* result=decision==Decisao::Abrir?"atividade_iniciada":decision==Decisao::Fechar?"atividade_encerrada":decision==Decisao::Transferir?"responsabilidade_transferida":decision==Decisao::AcessarSemTransferir?"acesso_ti_liberado":"sala_indisponivel";
  if(!event(result,person.as<JsonObjectConst>()))return;
  if(decision==Decisao::Negar){persist();screen("Sala indisponivel");beep(false);return;}
@@ -209,15 +224,45 @@ void loop(){
    if(wifiStatus==WL_CONNECTED)Serial.printf("WiFi conectado: IP=%s gateway=%s RSSI=%d dBm\n",WiFi.localIP().toString().c_str(),WiFi.gatewayIP().toString().c_str(),WiFi.RSSI());
   }
   if(WiFi.status()!=WL_CONNECTED&&now-lastWifi>=10000){WiFi.begin(WIFI_SSID,WIFI_PASSWORD);lastWifi=now;}
-  if(now-lastSync>=1000)syncServer();
+  // Não interrompa a confirmação nem uma retirada em observação com HTTP bloqueante.
+  bool observandoRetirada=!heldUid.isEmpty()&&retiradaTag.emAndamento();
+  if(!confirmacaoTroca.ativa()&&!observandoRetirada&&now-lastSync>=1000)syncServer();
  }
+ now=millis(); // A sincronização acima pode ter demorado.
  if(now-lastRead<100)return;lastRead=now;
  byte atqa[2],len=2;auto status=rfid.PICC_WakeupA(atqa,&len);
- if(status!=MFRC522::STATUS_OK&&status!=MFRC522::STATUS_COLLISION){if(now-lastSeen>700)heldUid="";return;}
- if(!rfid.PICC_ReadCardSerial())return;
+ if(status==MFRC522::STATUS_TIMEOUT){
+  bool retirada=retiradaTag.observar(AmostraRetiradaTag::Timeout,millis());
+  informarCancelamento(confirmacaoTroca.observar(nullptr,millis()));
+  if(retirada){heldUid="";confirmacaoTroca.liberarAposRetirada();}
+  return;
+ }
+ if(status!=MFRC522::STATUS_OK&&status!=MFRC522::STATUS_COLLISION){retiradaTag.observar(AmostraRetiradaTag::Erro,millis());informarCancelamento(confirmacaoTroca.cancelar());return;}
+ if(status==MFRC522::STATUS_COLLISION){
+  retiradaTag.observar(AmostraRetiradaTag::Colisao,millis());
+  if(confirmacaoTroca.ativa()){informarCancelamento(confirmacaoTroca.cancelar());return;}
+ }
+ if(!rfid.PICC_ReadCardSerial()){retiradaTag.observar(AmostraRetiradaTag::UidIlegivel,millis());informarCancelamento(confirmacaoTroca.observar(nullptr,millis()));return;}
  String uid;for(byte i=0;i<rfid.uid.size;i++){if(i)uid+=':';if(rfid.uid.uidByte[i]<16)uid+='0';uid+=String(rfid.uid.uidByte[i],HEX);}uid.toUpperCase();
- rfid.PICC_HaltA();rfid.PCD_StopCrypto1();lastSeen=now;
+ rfid.PICC_HaltA();rfid.PCD_StopCrypto1();now=millis();
+ retiradaTag.observar(AmostraRetiradaTag::Presente,now);
+ if(confirmacaoTroca.ativa()){
+  auto resultado=confirmacaoTroca.observar(uid.c_str(),now);
+  informarCancelamento(resultado);
+  if(resultado==ResultadoConfirmacaoTag::Confirmada){
+   // A autorização e o estado precisam continuar válidos ao final da espera.
+   if(exigeConfirmacaoTroca(uid))readCard(uid,true);
+   else screen("Troca cancelada","Estado alterado");
+  }
+  return;
+ }
+ // Uma tag mantida após confirmar não pode encerrar a sala acidentalmente.
+ if(confirmacaoTroca.confirmada())return;
  if(uid==heldUid)return;heldUid=uid;
+ if(exigeConfirmacaoTroca(uid)){
+  if(confirmacaoTroca.iniciar(uid.c_str(),now))screen("Manter cartao","Aguarde 3 segundos");
+  return;
+ }
  // Cabinet has no server: retain a bounded rolling log instead of filling forever.
  if(DEVICE_MODE==2&&healthy&&state["eventos"].size()>=MAX_EVENTS)state["eventos"].as<JsonArray>().remove(0);
  readCard(uid);

@@ -14,6 +14,10 @@ Registre data, versão do firmware, resultado e tempo observado em cada cenário
 | Cartão autorizado | Permissão respeitada, servo acionado e evento no histórico | Pendente nesta rodada |
 | Cartão bloqueado | Após sincronizar revogação, acesso negado e vínculo preservado | Pendente |
 | Cartão desvinculado | Após sincronização, cartão sem acesso pelo antigo vínculo | Pendente |
+| Outro professor: toque curto | Sem movimento do servo e sem trocar o responsável | Validado na 204 em 09/11/2026 |
+| Outro professor: manter por 3 s | Uma única transferência, sem mover o servo nem encerrar a sala enquanto a tag permanecer | Validado na 204 em 09/11/2026 |
+| Transferência interrompida | Retirar antes de 3 s não muda o responsável; após retirada, pode tentar novamente | Validado na 204 em 09/11/2026 |
+| Após transferência | Retirar a tag e aproximar novamente encerra a atividade do novo responsável | Validado na 204 em 09/11/2026 |
 | Manutenção | Restrições respeitadas; encerrar manutenção restaura disponibilidade | Pendente |
 | Wi-Fi interrompido | Indicação de perda de comunicação; painel preserva último estado conhecido | Pendente |
 | Wi-Fi restabelecido | Eventos reconciliados sem duplicação e contato atualizado | Pendente |

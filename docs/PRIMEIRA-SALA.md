@@ -86,6 +86,10 @@ Teste primeiro na bancada, com o servo calibrado e alimentação adequada.
 Com a sala disponível, aproxime o cartão autorizado. Confira o resultado no
 OLED, no painel e no Histórico. Retire o cartão antes de aproximá-lo novamente.
 Ao iniciar uma atividade, a sala passa a mostrar responsável e início de uso.
+Para outro professor autorizado assumir a sala em uso, mantenha a tag no leitor
+por 3 segundos. Um toque curto não abre nem troca o responsável. Depois da troca,
+retire a tag antes de aproximá-la novamente para encerrar a atividade. A tabela
+de horários ainda não é consultada automaticamente.
 
 As cores são: verde disponível, vermelho em uso, laranja atividade da TI e
 amarelo atividade da limpeza. TI em uma sala ocupada por outra pessoa abre a
@@ -94,6 +98,9 @@ tranca sem trocar o responsável. Manutenção/erro aparecem em cinza.
 O estado do painel é lógico; sem sensor, ele não confirma a posição mecânica
 do trinco. Testes físicos, falta de rede e corte/retorno de energia permanecem
 necessários antes de instalar em uma porta real.
+Na seção **Histórico**, os registros são atualizados a cada 3 segundos com os
+filtros e a página atual preservados. Em eventos anteriores, use **Eventos mais
+recentes** para retornar à primeira página.
 
 ### Cadastrar cartões em sequência e revogar acesso
 

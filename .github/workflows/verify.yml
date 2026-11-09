@@ -32,6 +32,8 @@ jobs:
           find . -name '*.php' -not -path './frontend/node_modules/*' -print0 | xargs -0 -n1 php -l
           g++ -std=c++11 -Wall -Wextra -pedantic tests/regras_test.cpp -o /tmp/regras-test
           /tmp/regras-test
+          g++ -std=c++11 -Wall -Wextra -pedantic tests/confirmacao_tag_test.cpp -o /tmp/confirmacao-tag-test
+          /tmp/confirmacao-tag-test
       - name: Banco descartável e instalação repetível
         env:
           MYSQL_PWD: test-only-password
@@ -75,6 +77,7 @@ jobs:
           cd ..
           python3 -m http.server 8090 --bind 127.0.0.1 > /tmp/clack-ui.log 2>&1 &
           node tests/ui_test.cjs
+          node tests/ui_history_test.cjs
           node tests/ui_card_test.cjs
           node tests/ui_login_test.cjs
       - uses: actions/upload-artifact@v4

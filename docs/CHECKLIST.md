@@ -6,6 +6,9 @@
 - [x] Cartões: nome, matrícula ou NDA, cinco perfis, salas editáveis, TI global, bloqueio e desvinculação.
 - [x] Cadastrador dedicado com captura reservada por operador.
 - [x] Responsabilidade por sala, transferência entre professores e restrição do aluno.
+- [x] Implementar confirmação de 3 segundos para transferência, bloqueio até retirada e testes automatizados de temporização; firmware compilado e gravado na tranca 204.
+- [x] Validar na tranca 204 o toque curto sem ação, transferência segurando a tag, permanência sem fechamento e nova aproximação para encerrar (09/11/2026, resultado físico informado pelo usuário e eventos conferidos).
+- [ ] Implementar e validar importação de PDF e verificação de horários após definição dos requisitos e análise de um arquivo real.
 - [x] TI com acesso global e abertura de sala ocupada sem assumir a atividade no painel.
 - [x] Comandos remotos com prazo e confirmação separada do estado físico.
 - [x] Painel React, tema claro/escuro persistente e seleção dos três andares.
@@ -21,6 +24,8 @@
 - [x] Docker Compose com build do painel, Apache/PHP, MySQL e volumes persistentes.
 - [x] Tutorial completo de instalação/uso com Docker, rede do ESP32, atualização e backup/restauração.
 - [x] Histórico com snapshots, ocorrência/recebimento e filtro por sala.
+- [x] Alinhar os filtros do histórico e atualizar eventos e ações a cada 3 segundos, preservando filtros e página de eventos anteriores.
+- [x] Exibir o evento de transferência com a descrição legível “Responsabilidade transferida” no histórico, com tradução em espanhol.
 - [x] Histórico: abas de eventos dos dispositivos e ações da portaria, filtro por dia nas duas listas e filtro por sala nos eventos; retorno ao período geral (API e build de produção validados em ambiente descartável; teste de navegação atualizado).
 - [x] Mostrar em laranja o último usuário da sala disponível, com nome recuperado do evento de atividade mais recente (consulta validada por integração; build de produção concluído; teste de interface atualizado).
 - [x] Firmware com OLED, cache offline e fila persistente com confirmação/deduplicação.

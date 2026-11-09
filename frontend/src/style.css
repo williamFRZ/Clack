@@ -375,11 +375,14 @@ header {
 .toolbar p {
   margin: 0;
 }
+.history-room-filter,
 .history-day-filter {
-  min-width: 180px;
+  flex: 0 1 180px;
+  min-width: 0;
   margin: 0;
 }
-.history-day-filter input {
+.history-day-filter input,
+.history-room-filter select {
   width: 100%;
 }
 .history-tabs {
@@ -403,7 +406,12 @@ header {
   color: var(--accent);
 }
 .history-toolbar {
+  align-items: flex-end;
+  justify-content: flex-start;
   flex-wrap: wrap;
+}
+.history-toolbar > button:last-child {
+  margin-left: auto;
 }
 .card-toolbar-main button {
   flex-shrink: 0;
@@ -858,6 +866,9 @@ textarea {
   .toolbar {
     align-items: flex-start;
     flex-wrap: wrap;
+  }
+  .history-toolbar {
+    align-items: flex-end;
   }
   .card-filters {
     grid-template-columns: minmax(0, 1fr);

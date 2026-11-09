@@ -68,6 +68,7 @@ const translationsEs = {
   "Acesso completo": "Acceso completo",
   "Atividade iniciada": "Actividad iniciada",
   "Atividade encerrada": "Actividad finalizada",
+  "Responsabilidade transferida": "Responsabilidad transferida",
   "Carregando Clack…": "Cargando Clack…",
   "Bem-vindo à portaria.": "Bienvenido a portería.",
   "Entre para acompanhar os ambientes e gerenciar acessos.": "Inicie sesión para consultar los espacios y gestionar los accesos.",
@@ -297,6 +298,7 @@ const translationsEs = {
   "Desconhecido": "Desconocido",
   "Bloqueado": "Bloqueada",
   "Todas as salas": "Todas las salas",
+  "Eventos mais recentes": "Eventos más recientes",
   "Liberar acesso": "Habilitar acceso",
   "Permissões": "Permisos",
   "Não": "No",
@@ -393,6 +395,7 @@ function LanguageSwitcher() {
 const eventLabels = {
   atividade_iniciada: "Atividade iniciada",
   atividade_encerrada: "Atividade encerrada",
+  responsabilidade_transferida: "Responsabilidade transferida",
 };
 const normalizedSearch = (value) =>
   String(value ?? "")
@@ -425,6 +428,8 @@ function App() {
     [history, setHistory] = useState({ eventos: [], auditoria: [] }),
     [historyView, setHistoryView] = useState("eventos"),
     [historyDay, setHistoryDay] = useState(""),
+    [historyBefore, setHistoryBefore] = useState(null),
+    [historyReload, setHistoryReload] = useState(0),
     [filter, setFilter] = useState(""),
     [cardSearch, setCardSearch] = useState(""),
     [cardProfile, setCardProfile] = useState(""),
@@ -449,6 +454,7 @@ function App() {
     setHistory({ eventos: [], auditoria: [] });
     setHistoryView("eventos");
     setHistoryDay("");
+    setHistoryBefore(null);
     setFilter("");
     setCardSearch("");
     setCardProfile("");
@@ -521,15 +527,34 @@ function App() {
     };
   }, [op]);
   useEffect(() => {
-    if (op && tab === "historico")
-      api(historyQuery(filter, historyDay))
-        .then(setHistory)
-        .catch(report);
+    if (!op || tab !== "historico") return;
+    let active = true;
+    let inFlight = false;
+    const updateHistory = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const result = await api(historyQuery(filter, historyDay, historyBefore));
+        if (active) setHistory(result);
+      } catch (e) {
+        if (active) report(e);
+      } finally {
+        inFlight = false;
+      }
+    };
+    updateHistory();
+    const timer = setInterval(updateHistory, 3000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [tab, op, filter, historyDay, historyBefore, historyReload]);
+  useEffect(() => {
     if (op?.papel === "admin" && tab === "admin")
       api("operadores")
         .then((d) => setOperators(d.operadores))
         .catch(report);
-  }, [tab, op, filter, historyDay]);
+  }, [tab, op]);
   async function save(action, body) {
     setError("");
     try {
@@ -886,10 +911,12 @@ function App() {
             </div>
             <div className="toolbar history-toolbar">
               {historyView === "eventos" ? (
+                <label className="history-room-filter">
+                  {t("Filtrar sala")}
                 <select
                   aria-label={t("Filtrar sala")}
                   value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
+                  onChange={(e) => { setHistoryBefore(null); setFilter(e.target.value); }}
                 >
                   <option value="">{t("Todas as salas")}</option>
                   {data.salas.map((s) => (
@@ -898,6 +925,7 @@ function App() {
                     </option>
                   ))}
                 </select>
+                </label>
               ) : null}
               <label className="history-day-filter">
                 {t("Filtrar por dia")}
@@ -905,21 +933,22 @@ function App() {
                   type="date"
                   aria-label={t("Filtrar por dia")}
                   value={historyDay}
-                  onChange={(e) => setHistoryDay(e.target.value)}
+                  onChange={(e) => { setHistoryBefore(null); setHistoryDay(e.target.value); }}
                 />
               </label>
               {historyDay && (
-                <button className="quiet" onClick={() => setHistoryDay("")}>
+                <button className="quiet" onClick={() => { setHistoryBefore(null); setHistoryDay(""); }}>
                   {t("Todas as atividades")}
+                </button>
+              )}
+              {historyView === "eventos" && historyBefore && (
+                <button className="quiet" onClick={() => setHistoryBefore(null)}>
+                  {t("Eventos mais recentes")}
                 </button>
               )}
               <button
                 className="quiet"
-                onClick={() =>
-                  api(historyQuery(filter, historyDay))
-                    .then(setHistory)
-                    .catch(report)
-                }
+                onClick={() => setHistoryReload((value) => value + 1)}
               >
                 {t("Atualizar")}
               </button>
@@ -953,13 +982,7 @@ function App() {
                 {history.eventos.length === 100 && (
                   <button
                     className="quiet"
-                    onClick={() =>
-                      api(
-                        historyQuery(filter, historyDay, history.eventos.at(-1).id),
-                      )
-                        .then(setHistory)
-                        .catch(report)
-                    }
+                    onClick={() => setHistoryBefore(history.eventos.at(-1).id)}
                   >
                     {t("Eventos anteriores")}
                   </button>

@@ -253,6 +253,12 @@ falta de rede e corte/retorno de energia na bancada.
 4. Aguarde a sincronização da tranca antes de testar um cartão novo.
 5. Acompanhe Ambientes e Histórico. Em uma sala ocupada por outra pessoa,
    TI abre a tranca sem mudar o responsável, a cor ou o início da atividade.
+   Professor autorizado que assumir a sala deve manter a tag por 3 segundos;
+   um toque curto não abre a tranca nem troca o responsável. Ainda não há
+   verificação automática da tabela de horários.
+   O histórico é atualizado a cada 3 segundos enquanto a seção estiver aberta,
+   mantendo os filtros e a página consultada. Em eventos anteriores, use
+   **Eventos mais recentes** para retornar à primeira página.
 6. Para intervenção da portaria, abra os detalhes da sala e envie o comando
    adequado. Comandos têm expiração e confirmação; o dispositivo precisa
    estar conectado para recebê-los.

@@ -127,7 +127,7 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
   await page.getByRole("heading", { name: "Bienvenido a portería." }).waitFor();
   await page.getByLabel("Usuario", { exact: true }).waitFor();
   await page.reload();
-  await page.getByRole("heading", { name: "Espacios del campus", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Bienvenido a portería.", exact: true }).waitFor();
   if (await language.getAttribute("data-language") !== "es-UY") throw Error("Preferencia de idioma no persistió al recargar");
   await language.click();
   await page.keyboard.press("Home");
