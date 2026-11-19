@@ -1,6 +1,8 @@
 # Checklist Clack — 07/10/2026
 
 ## Software desenvolvido nesta etapa (validar na bancada)
+- [x] Preparar orçamento ilustrado de uma tranca e um cadastrador em `Recursos`, com cotações e fórmulas; confirmar itens e quantidades ainda não informados.
+- [x] Validar em banco descartável a senha inicial padrão de novas instalações e a preservação da senha existente após a configuração repetida.
 - [x] Instalação de banco não destrutiva, configuração fora do Git.
 - [x] Login individual, administrador/portaria, CSRF e auditoria.
 - [x] Cartões: nome, matrícula ou NDA, cinco perfis, salas editáveis, TI global, bloqueio e desvinculação.

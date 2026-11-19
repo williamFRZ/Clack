@@ -22,7 +22,20 @@ trap cleanup EXIT
 dc config --quiet
 dc up --build --wait --wait-timeout 240
 dc exec -T web sh -c 'test ! -e /opt/clack/config/config.local.php && test ! -e /opt/clack/.env && test ! -d /var/www/html/frontend'
-printf '%s\n' 'test-password-123' | dc exec -T web php bin/configurar.php admin 'Admin Teste'
+dc exec -T web php bin/configurar.php admin 'Admin Teste'
+python3 - <<'PY'
+import json, os, urllib.request, http.cookiejar
+base = os.environ['CLACK_TEST_URL']
+client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+def post(action, data, csrf=None):
+    headers = {'Content-Type': 'application/json'}
+    if csrf: headers['X-CSRF-Token'] = csrf
+    request = urllib.request.Request(base+'api.php?acao='+action, data=json.dumps(data).encode(), headers=headers)
+    return json.load(client.open(request))
+session = post('login', {'login': 'admin', 'senha': '20241SL.TDS0007'})
+post('senha', {'atual': '20241SL.TDS0007', 'nova': 'test-password-123'}, session['csrf'])
+print('Docker: senha inicial padrão e alteração no primeiro acesso verificadas.')
+PY
 dc exec -T web php bin/configurar.php
 python3 tests/gestao_test.py
 # Persistence across removal/recreation, not merely a process restart.

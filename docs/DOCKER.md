@@ -122,12 +122,14 @@ Somente o painel compilado e os pontos de entrada da API ficam públicos.
 docker compose exec web php bin/configurar.php admin "Seu nome completo"
 ```
 
-Digite uma senha de **12 a 72 bytes** quando solicitado e pressione Enter.
-A digitação aparece no terminal; evite fazê-lo durante compartilhamento de tela.
-A senha é armazenada como hash. Não passe a senha como argumento do comando.
+O primeiro administrador recebe a senha inicial `20241SL.TDS0007`, armazenada
+como hash. Como a senha padrão está no repositório público, altere-a assim que
+entrar no painel. Para escolher outra senha desde a criação, acrescente
+`--senha-stdin` ao comando e digite de 12 a 72 bytes quando solicitado; a
+digitação pode aparecer no terminal.
 
 Abra [http://localhost:8080/painel/](http://localhost:8080/painel/) e entre com
-login `admin` e a senha que você escolheu. Se mudou a porta, ajuste o endereço.
+login `admin` e a senha inicial padrão (ou a senha escolhida com `--senha-stdin`). Se mudou a porta, ajuste o endereço.
 
 O configurador pode ser repetido: preserva dados, operadores e senhas.
 Se já houver operadores, ele não cria nem redefine o administrador indicado.

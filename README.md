@@ -2,6 +2,8 @@
 
 Protótipo acadêmico de controle de acesso do TCC: ESP32, RC522, MG90S e painel local da portaria em PHP/MySQL + React. Três modos de firmware: tranca com OLED, cadastrador e armário com buzzer.
 
+Consulte o [orçamento ilustrado de recursos](Recursos/) para os componentes e materiais estimados.
+
 ## Começar
 
 O caminho principal é **[o tutorial completo com Docker](docs/DOCKER.md)**:
@@ -25,10 +27,10 @@ docker compose up -d --build --wait --wait-timeout 240
 docker compose exec web php bin/configurar.php admin "Seu nome"
 ```
 
-Digite a senha do administrador quando solicitado e abra
+Use a senha inicial `20241SL.TDS0007` para o login `admin` e abra
 **[http://localhost:8080/painel/](http://localhost:8080/painel/)**.
 O Docker recompila o painel, migra as tabelas e conserva banco/sessões em volumes.
-Não há senha padrão nem cadastros de demonstração. Para ESP32 na LAN, configure
+Altere a senha padrão após o primeiro acesso, pois ela é pública. Não há cadastros de demonstração. Para ESP32 na LAN, configure
 `CLACK_BIND_IP=0.0.0.0` conforme o tutorial. `docker compose down` preserva dados;
 `down -v` apaga os volumes.
 
@@ -37,7 +39,7 @@ Não há senha padrão nem cadastros de demonstração. Para ESP32 na LAN, confi
 Siga **[instalação e funcionamento](docs/GESTAO.md)**. Requisitos: PHP 8.2 com mysqli/mysqlnd, MySQL 8 e PlatformIO para o ESP32. O painel compilado está incluído: Node só é necessário para editar/recompilar a interface.
 
 1. Importe `Clack_DB.sql` e configure `config/config.local.php` usando o exemplo.
-2. Execute `php bin/configurar.php admin "Seu nome"`. O comando atualiza o banco sem apagar dados e cria o primeiro administrador. Informe a senha pela entrada padrão.
+2. Execute `php bin/configurar.php admin "Seu nome"`. O comando atualiza o banco sem apagar dados e cria o primeiro administrador. Altere a senha inicial padrão após o primeiro acesso.
 3. Execute `php -S 0.0.0.0:8080 router.php` e abra `http://localhost:8080/painel/`.
 4. Cadastre ambientes/dispositivos e configure `esp32/include/config.local.h` com o IP LAN do servidor, ID e token do dispositivo.
 5. Inicialize LittleFS somente na primeira instalação e grave o firmware conforme o guia.

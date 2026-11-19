@@ -7,9 +7,12 @@ if (PHP_SAPI !== 'cli') {
 
 require __DIR__ . '/../conexao.php';
 
-[$script, $login, $nome] = array_pad($argv, 3, '');
+[$script, $login, $nome, $opcaoSenha] = array_pad($argv, 4, '');
 $login = trim($login);
 $nome = trim($nome);
+if ($opcaoSenha !== '' && $opcaoSenha !== '--senha-stdin') {
+    throw new InvalidArgumentException('Opção desconhecida. Use --senha-stdin para informar uma senha própria.');
+}
 
 function executar_arquivo_sql(mysqli $db, string $arquivo): void
 {
@@ -87,8 +90,13 @@ try {
             throw new InvalidArgumentException('O nome deve ter no máximo 100 caracteres.');
         }
 
-        fwrite(STDERR, "Senha inicial (12 a 72 bytes; a digitação aparece no terminal): ");
-        $senha = rtrim((string) fgets(STDIN), "\r\n");
+        if ($opcaoSenha === '--senha-stdin') {
+            fwrite(STDERR, "Senha inicial (12 a 72 bytes; a digitação pode aparecer no terminal): ");
+            $senha = rtrim((string) fgets(STDIN), "\r\n");
+        } else {
+            // Credencial inicial pública; deve ser trocada após a instalação.
+            $senha = '20241SL.TDS0007';
+        }
         if (strlen($senha) < 12 || strlen($senha) > 72) {
             throw new InvalidArgumentException('A senha deve ter entre 12 e 72 bytes.');
         }
@@ -98,6 +106,9 @@ try {
         $stmt->bind_param('sss', $nome, $login, $hash);
         $stmt->execute();
         echo "Administrador criado: {$login}\n";
+        if ($opcaoSenha === '') {
+            echo "Foi usada a senha inicial padrão; altere-a após o primeiro acesso.\n";
+        }
     } else {
         echo "Operadores preservados: {$totalOperadores}. Nenhuma senha foi alterada.\n";
     }
