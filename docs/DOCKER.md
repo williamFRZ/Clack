@@ -9,6 +9,10 @@ O banco começa vazio, com as três plantas incluídas no painel. Salas, cartõe
 permissões e dispositivos são cadastrados por você; não existem senha padrão,
 cartões liberados ou salas reais pré-cadastradas.
 
+No Windows, para um caminho guiado mais curto, use a
+**[instalação rápida e o iniciador](INSTALACAO-RAPIDA.md)**. Os passos abaixo
+continuam disponíveis para instalação manual e outros sistemas.
+
 ## 1. Preparar o computador
 
 Instale Git e Docker com Compose:
@@ -60,14 +64,14 @@ conforme [BRANCHES.md](BRANCHES.md).
 No PowerShell:
 
 ```powershell
-Copy-Item .env.example .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 notepad .env
 ```
 
 No Linux/macOS:
 
 ```sh
-cp .env.example .env
+test -e .env || cp .env.example .env
 ```
 
 Abra `.env` no editor e preencha:
@@ -87,6 +91,8 @@ passo 5. Valores vazios impedem a inicialização.
 O `.env` é ignorado pelo Git e não entra na imagem Docker. Guarde uma cópia
 privada junto do backup do banco. `config/config.local.php` é usado somente
 na instalação sem Docker; o container usa as variáveis deste `.env`.
+Se já houver um volume de banco do Clack, recupere o `.env` correspondente;
+criar novas senhas não altera as senhas dentro de um banco existente.
 
 Por padrão, só o próprio computador acessa o painel. Se a porta 8080 já estiver
 ocupada, altere `CLACK_PORT` para, por exemplo, `8081` e use essa porta nos
@@ -177,15 +183,16 @@ a tranca. Horário desconhecido fica identificado; o painel não inventa a hora.
 
 Para usar o hardware ou abrir o painel em outro computador/celular:
 
-1. No `.env`, altere `CLACK_BIND_IP=127.0.0.1` para `CLACK_BIND_IP=0.0.0.0`.
-2. Recrie o serviço web:
+1. Descubra o IPv4 da interface usada na rede. No Windows, execute `ipconfig`.
+   Exemplo: `192.168.1.100`. Não use IP de VPN ou de interface virtual Docker.
+2. No `.env`, defina `CLACK_BIND_IP` com esse IPv4. Assim o serviço escuta apenas
+   nessa interface; o painel no próprio servidor passa a usar esse mesmo IP.
+3. Recrie o serviço web ou execute o iniciador do Windows novamente:
 
    ```sh
    docker compose up -d --wait
    ```
 
-3. Descubra o IPv4 da interface usada na rede. No Windows, execute `ipconfig`.
-   Exemplo: `192.168.1.100`. Não use IP de VPN ou de interface virtual Docker.
 4. No computador/celular da mesma rede, abra
    `http://192.168.1.100:8080/painel/`, ajustando IP e porta.
 5. Se necessário, autorize a porta escolhida no firewall somente para a rede
@@ -194,6 +201,8 @@ Para usar o hardware ou abrir o painel em outro computador/celular:
 
 O ESP32 acessa o IP LAN do computador, não `localhost`, `db`, um IP interno
 do container ou o caminho `/Clack` usado em instalações XAMPP.
+Para escutar em todas as interfaces, é possível usar `CLACK_BIND_IP=0.0.0.0`,
+mas isso amplia as interfaces expostas e exige regras adequadas de firewall.
 Reserve o IP do computador no DHCP do roteador para evitar mudanças.
 
 O protótipo usa HTTP autenticado. HTTP transmite senhas/tokens sem criptografia;
@@ -221,19 +230,28 @@ Ajuste o IP/porta, mantenha `/dispositivo.php` e escolha `DEVICE_MODE`:
 
 - `0`: tranca com servo; OLED opcional e LEDs de status independentes.
 - `1`: cadastrador conectado por Wi-Fi, usado para capturar cartões.
-- `2`: armário offline; usa `CABINET_UID`, sem a gestão online das salas.
+- `2`: modo original do armário offline, com `CABINET_UID`. Para cadastro de várias tags no leitor, veja o [programa independente do armário](ARMARIO-OFFLINE.md).
 
-Compile e grave, dentro da pasta do projeto:
+Compile dentro da pasta do projeto:
 
 ```sh
 pio run -d esp32
+```
+
+**Somente para um dispositivo novo**, inicialize o sistema de arquivos:
+
+```sh
 pio run -d esp32 -t uploadfs
+```
+
+Depois grave o programa e acompanhe o diagnóstico:
+
+```sh
 pio run -d esp32 -t upload
 pio device monitor -d esp32
 ```
 
-**`uploadfs` é somente para a primeira instalação em um dispositivo novo.**
-Em dispositivo já utilizado, ele apaga fila, sequência e permissões locais.
+Em dispositivo já utilizado, `uploadfs` apaga fila, sequência e permissões locais.
 Para atualizar firmware/configuração, use apenas compilação e `upload`,
 preservando LittleFS. A troca/reinicialização de hardware exige reprovisão
 controlada; não reutilize uma identidade com a sequência zerada.
@@ -340,6 +358,12 @@ antes e confirme que está no projeto correto. Para recuperar em outro
 computador, baixe a mesma versão do código, restaure seu `.env` e execute o
 passo 4 primeiro. Não crie um administrador novo antes de importar o backup.
 
+Uma tranca já usada guarda sequência de eventos e identificador do último
+comando. Conectá-la a um banco vazio pode resultar em falhas de sincronização
+ou comandos não executados. Recupere o banco anterior quando possível; sem ele,
+planeje uma reconfiguração controlada e teste antes do uso. Não inicialize
+LittleFS para contornar o problema nem reutilize a identidade com sequência zerada.
+
 ```sh
 docker compose stop web
 docker compose cp ./backups/clack-backup.sql db:/tmp/clack-restore.sql
@@ -367,7 +391,7 @@ revise os cadastros no painel conforme [GESTAO.md](GESTAO.md).
 | `web` unhealthy / falha na migração | Leia `docker compose logs --tail=100 web`. Confirme a conexão e compatibilidade do banco importado. |
 | Login recusado na primeira instalação | Execute o passo 5. Não existe senha padrão. Em banco restaurado, use uma conta já existente. |
 | Painel antigo depois da atualização | Execute `up -d --build --wait` e recarregue o navegador. Confirme que abriu a porta do Docker e não o endereço do XAMPP. |
-| ESP32 não conecta | Confira `CLACK_BIND_IP=0.0.0.0`, IP LAN/porta em `SERVER_URL`, Wi-Fi, firewall, ID/token e se a rede isola os clientes. |
+| ESP32 não conecta | Confira `CLACK_BIND_IP` na interface correta, IP LAN/porta em `SERVER_URL`, Wi-Fi, firewall, ID/token e se a rede isola os clientes. |
 | Cartão novo recusado offline | Reconecte a tranca para sincronizar permissões; confira perfil e salas do cartão. |
 | Dados parecem ter sumido | Confira o projeto/volume usado com `docker compose ps -a` e `docker volume ls`; não inicialize ou apague volumes até localizar o banco original. |
 

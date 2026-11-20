@@ -6,6 +6,8 @@ Esta versão substitui painel, API e firmware juntos. As quatro APIs antigas res
 
 Para instalar servidor/painel com containers, siga **[DOCKER.md](DOCKER.md)**.
 Ele inclui primeiro administrador, rede do ESP32, uso, atualização e backup.
+No Windows, o [iniciador e guia rápido](INSTALACAO-RAPIDA.md) automatizam a
+configuração inicial do banco e abrem o painel sem substituir o `.env` existente.
 Os passos desta seção são para a instalação sem Docker.
 
 1. PHP 8.2 com mysqli/mysqlnd e MySQL 8. Crie o banco com `Clack_DB.sql` (sem apagar o anterior), copie `config/config.example.php` para `config/config.local.php` e configure um usuário MySQL próprio.
@@ -77,7 +79,7 @@ Durante a confirmação da troca de responsável, acende o vermelho no primeiro 
 
 - DEVICE_MODE=0: tranca; OLED é opcional (OLED_ENABLED=1, endereço 0x3C). Os três LEDs de status são independentes do OLED.
 - DEVICE_MODE=1: cadastrador dedicado; Wi-Fi obrigatório para captura; OLED opcional.
-- DEVICE_MODE=2: armário sem rede/tela, buzzer, um UID autorizado configurado em CABINET_UID. Histórico local circular de 64 eventos. Cadastro local de múltiplos cartões ainda não implementado.
+- DEVICE_MODE=2: modo original do firmware principal, com um UID em CABINET_UID e histórico local circular de 64 eventos. O [programa independente do armário](ARMARIO-OFFLINE.md) é uma alternativa separada com cadastro local de várias tags.
 
 ## Pendências de entrega física e implantação
 

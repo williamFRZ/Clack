@@ -9,7 +9,11 @@ function fail(string $message, int $status = 400): never { resposta_json(['mensa
 function body(): array {
  if(strtolower(trim(explode(';',$_SERVER['CONTENT_TYPE']??'')[0]))!=='application/json') fail('Use Content-Type application/json.',415);
  if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0)>65536) fail('Pedido muito grande.',413);
- try { $data = json_decode(file_get_contents('php://input'),true,64,JSON_THROW_ON_ERROR); }
+ // Content-Length pode estar ausente, por exemplo em pedidos fragmentados.
+ $raw=file_get_contents('php://input',false,null,0,65537);
+ if($raw===false) fail('Não foi possível ler o pedido.',400);
+ if(strlen($raw)>65536) fail('Pedido muito grande.',413);
+ try { $data = json_decode($raw,true,64,JSON_THROW_ON_ERROR); }
  catch (JsonException $e) { fail('JSON inválido.'); }
  if (!is_array($data) || array_is_list($data) && $data) fail('Objeto JSON esperado.');
  return $data;

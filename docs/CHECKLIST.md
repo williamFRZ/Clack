@@ -1,10 +1,9 @@
 # Checklist Clack — 07/10/2026
 
 ## Software desenvolvido nesta etapa (validar na bancada)
-- [x] Preparar orçamento ilustrado de uma tranca e um cadastrador em `Recursos`, com cotações e fórmulas; confirmar itens e quantidades ainda não informados.
-- [x] Validar em banco descartável a senha inicial padrão de novas instalações e a preservação da senha existente após a configuração repetida.
 - [x] Instalação de banco não destrutiva, configuração fora do Git.
 - [x] Login individual, administrador/portaria, CSRF e auditoria.
+- [x] Limitar o tamanho real dos pedidos JSON, inclusive fragmentados sem Content-Length; validação em servidor descartável.
 - [x] Cartões: nome, matrícula ou NDA, cinco perfis, salas editáveis, TI global, bloqueio e desvinculação.
 - [x] Cadastrador dedicado com captura reservada por operador.
 - [x] Responsabilidade por sala, transferência entre professores e restrição do aluno.
@@ -25,6 +24,10 @@
 - [x] Atualização idempotente para banco versão 3 (perfil TI e posições na planta).
 - [x] Docker Compose com build do painel, Apache/PHP, MySQL e volumes persistentes.
 - [x] Tutorial completo de instalação/uso com Docker, rede do ESP32, atualização e backup/restauração.
+- [x] Criar iniciador Windows e guia rápido, preservando a configuração existente e interrompendo quando há banco sem `.env`; instalação e reabertura ensaiadas em projetos Docker descartáveis.
+- [x] Preparar orçamento ilustrado de uma tranca e um cadastrador em `Recursos`, com cotações e fórmulas; confirmar itens e quantidades ainda não informados.
+- [x] Validar em banco descartável a senha inicial padrão de novas instalações e a preservação da senha existente após a configuração repetida.
+- [ ] Validar o iniciador em outro computador e avaliar instalação de pré-requisitos e configuração de firewall com a TI da rede.
 - [x] Histórico com snapshots, ocorrência/recebimento e filtro por sala.
 - [x] Alinhar os filtros do histórico e atualizar eventos e ações a cada 3 segundos, preservando filtros e página de eventos anteriores.
 - [x] Exibir o evento de transferência com a descrição legível “Responsabilidade transferida” no histórico, com tradução em espanhol.
@@ -32,8 +35,13 @@
 - [x] Mostrar em laranja o último usuário da sala disponível, com nome recuperado do evento de atividade mais recente (consulta validada por integração; build de produção concluído; teste de interface atualizado).
 - [x] Firmware com OLED, cache offline e fila persistente com confirmação/deduplicação.
 - [x] Modo armário sem servidor/tela, buzzer e um cartão configurado.
+- [x] Criar programa separado de armário offline com cadastro de até 20 tags por permanência de 10 segundos e testes automatizados de temporização.
+- [x] Gravar na tranca 204 o programa independente do armário e confirmar a inicialização e o acesso à memória (09/11/2026).
+- [x] Confirmar na tranca 204 o cadastro de uma tag e movimento do servo; o monitor registrou comandos de abertura e fechamento (09/11/2026).
+- [ ] Validar várias tags, retirada, reinício e movimentos com mecanismo montado; calibrar ângulos e investigar a possível intermitência nas conexões do RC522.
 
 - [x] Diagnóstico serial de Wi-Fi/IP, transporte HTTP e comunicação RC522, sem expor senha/token (leitura física do Pelado validada; fluxo consecutivo e revogação em tranca real ainda pendentes).
+- [ ] Verificar a sequência e os eventos locais da placa conectada em 15/11/2026, que apresentou divergência com o servidor da sala 204; não apagar a memória antes de entender a diferença.
 
 - [x] Liberar reserva após leitura/cancelamento, recuperar leitura do mesmo operador e permitir cadastro consecutivo pelo painel (API e UI validadas em ambiente descartável).
 - [x] Revogar acesso preservando UID/histórico, inclusive TI global (integração e interface validadas).

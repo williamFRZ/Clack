@@ -1,6 +1,10 @@
 # Validação do Clack
 
 ## Automatizada, com dados descartáveis
+- Iniciador Windows: primeira instalação, criação de administrador, reabertura
+  com banco e configuração preservados e recusa quando há banco sem `.env`,
+  ensaiados em projetos Docker isolados. A validação em outro computador e o
+  acesso de dispositivos pela rede institucional permanecem pendentes.
 - `node tests/room_status_test.mjs`: estados, perfis, horários e marcadores; executado com sucesso nesta rodada.
 - `sh tests/docker_test.sh`: usar ambiente com Docker acessível, shell POSIX e Python 3. O roteiro escolhe projeto/volume próprios e porta 18080, sem carregar compose.override.yaml. Cria dados artificiais e remove somente seus volumes ao terminar.
 - O teste Python exige CLACK_TEST_DISPOSABLE=1 e CLACK_TEST_URL explícitos. Não aponte esses valores para o servidor de uso real.

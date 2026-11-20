@@ -6,9 +6,13 @@ Consulte o [orçamento ilustrado de recursos](Recursos/) para os componentes e m
 
 ## Começar
 
-O caminho principal é **[o tutorial completo com Docker](docs/DOCKER.md)**:
-download, senhas, primeiro acesso, salas e plantas, cartões, ESP32 na rede,
-atualização, backup e restauração. A versão atual está na branch `main`.
+No Windows, siga a **[instalação rápida](docs/INSTALACAO-RAPIDA.md)** e execute
+`Iniciar-Clack.cmd` para configurar e abrir o painel. O iniciador cria as senhas
+internas apenas na primeira instalação e preserva a configuração existente.
+Para outros sistemas, instalação manual, atualização e recuperação, consulte o
+**[tutorial completo com Docker](docs/DOCKER.md)**. A versão atual está na branch `main`.
+
+### Instalação manual com Docker
 
 Instale Git e Docker com Compose, abra o Docker Desktop com containers Linux
 e execute:
@@ -18,8 +22,8 @@ git clone --branch main https://github.com/williamFRZ/Clack.git
 cd Clack
 ```
 
-Copie `.env.example` para `.env` (`Copy-Item .env.example .env` no PowerShell ou
-`cp .env.example .env` no Linux/macOS) e preencha as duas senhas do banco.
+Para a instalação manual, copie `.env.example` para `.env` **somente se `.env`
+ainda não existir** e preencha as duas senhas do banco.
 Depois:
 
 ```sh
@@ -29,9 +33,10 @@ docker compose exec web php bin/configurar.php admin "Seu nome"
 
 Use a senha inicial `20241SL.TDS0007` para o login `admin` e abra
 **[http://localhost:8080/painel/](http://localhost:8080/painel/)**.
+Se `CLACK_BIND_IP` for um IPv4 específico, use esse IPv4 no endereço do painel.
 O Docker recompila o painel, migra as tabelas e conserva banco/sessões em volumes.
 Altere a senha padrão após o primeiro acesso, pois ela é pública. Não há cadastros de demonstração. Para ESP32 na LAN, configure
-`CLACK_BIND_IP=0.0.0.0` conforme o tutorial. `docker compose down` preserva dados;
+`CLACK_BIND_IP` com o IPv4 da interface local conforme o tutorial. `docker compose down` preserva dados;
 `down -v` apaga os volumes.
 
 ### Instalação sem Docker
@@ -39,7 +44,7 @@ Altere a senha padrão após o primeiro acesso, pois ela é pública. Não há c
 Siga **[instalação e funcionamento](docs/GESTAO.md)**. Requisitos: PHP 8.2 com mysqli/mysqlnd, MySQL 8 e PlatformIO para o ESP32. O painel compilado está incluído: Node só é necessário para editar/recompilar a interface.
 
 1. Importe `Clack_DB.sql` e configure `config/config.local.php` usando o exemplo.
-2. Execute `php bin/configurar.php admin "Seu nome"`. O comando atualiza o banco sem apagar dados e cria o primeiro administrador. Altere a senha inicial padrão após o primeiro acesso.
+2. Execute `php bin/configurar.php admin "Seu nome"`. O comando atualiza o banco sem apagar dados e cria o primeiro administrador com a senha inicial padrão. Altere-a após o primeiro acesso.
 3. Execute `php -S 0.0.0.0:8080 router.php` e abra `http://localhost:8080/painel/`.
 4. Cadastre ambientes/dispositivos e configure `esp32/include/config.local.h` com o IP LAN do servidor, ID e token do dispositivo.
 5. Inicialize LittleFS somente na primeira instalação e grave o firmware conforme o guia.
@@ -53,6 +58,8 @@ diagnóstico e compatibilidade com OLED em [GESTAO.md](docs/GESTAO.md).
 ## Recursos desta versão
 
 Para começar os cadastros, siga **[Configurar a primeira sala](docs/PRIMEIRA-SALA.md)**.
+
+Para um armário independente, existe um [programa offline separado](docs/ARMARIO-OFFLINE.md), com cadastro de até 20 tags ao mantê-las por 10 segundos no leitor. Ele ainda precisa de validação física.
 
 - Contas individuais de portaria/admin, troca de senha, auditoria e rotação de tokens.
 - Cartões com matrícula/NDA, cinco perfis, TI com acesso global e entrada em sala ocupada sem assumir a atividade; salas selecionáveis para os demais e leitura em cadastrador dedicado.

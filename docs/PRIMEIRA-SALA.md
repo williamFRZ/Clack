@@ -1,7 +1,8 @@
 # Configurar a primeira sala no Clack
 
-O servidor Docker deve estar iniciado. Abra http://localhost:8080/painel/ e
-entre como administrador. Não é necessário ter um ESP32 para cadastrar e
+O servidor Docker deve estar iniciado. Abra o endereço exibido pelo iniciador
+ou `http://localhost:8080/painel/` se a instalação usar acesso local, e entre
+como administrador. Não é necessário ter um ESP32 para cadastrar e
 posicionar a sala; o hardware é necessário para abrir a tranca e registrar uso.
 
 ## 1. Criar o ambiente
@@ -45,7 +46,8 @@ Até aqui você já pode conferir a sala na interface, sem hardware.
 5. Copie o **ID** e o **Token** exibidos. O token aparece uma única vez;
    guarde-o em `esp32/include/config.local.h`, fora do Git.
 
-Para conectar o ESP32, altere `CLACK_BIND_IP=0.0.0.0` no `.env` e execute:
+Para conectar o ESP32, configure `CLACK_BIND_IP` no `.env` com o IPv4 da
+interface local deste computador e execute o iniciador novamente ou:
 
 ```sh
 docker compose up -d --wait
@@ -72,6 +74,8 @@ dispositivo em uso. Após sincronizar, confira o indicador online da sala.
 
 O cadastro pela interface usa um **cadastrador dedicado**, outro ESP32 com
 `DEVICE_MODE=1`, registrado em Configurações como tipo Cadastrador.
+Para o armário independente, o cadastro é feito diretamente no leitor do
+[programa offline do armário](ARMARIO-OFFLINE.md), sem usar o painel.
 
 1. Abra **Cartões → Novo cartão**.
 2. Escolha o cadastrador online, inicie captura e aproxime o cartão.

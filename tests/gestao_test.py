@@ -1,7 +1,7 @@
 """Integration against a disposable MySQL database and PHP HTTP server."""
-import json, os, urllib.request, urllib.error, http.cookiejar
+import json, os, urllib.request, urllib.error, http.cookiejar, http.client
 from datetime import datetime, timedelta, timezone
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit, urljoin
 if os.environ.get('CLACK_TEST_DISPOSABLE') != '1' or not os.environ.get('CLACK_TEST_URL'):
     raise SystemExit('Use apenas ambiente descartavel: defina CLACK_TEST_DISPOSABLE=1 e CLACK_TEST_URL explicitamente.')
 BASE=os.environ['CLACK_TEST_URL'].rstrip('/')+'/'
@@ -21,6 +21,24 @@ def request(path, body=None, code=200, token=None, use_csrf=True):
     return json.loads(raw)
 def api(action,b=None,code=200,**kw):return request('api.php?acao='+action,b,code,**kw)
 api('painel',code=401)
+# O limite é sobre os bytes recebidos, inclusive quando não há Content-Length.
+prefix=b'{"login":"teste-limite","senha":"invalida","extra":"'
+suffix=b'"}'
+def testar_tamanho(tamanho, fragmentado, esperado):
+    payload=prefix+b'x'*(tamanho-len(prefix)-len(suffix))+suffix
+    url=urlsplit(urljoin(BASE,'api.php?acao=login'))
+    connection=(http.client.HTTPSConnection if url.scheme=='https' else http.client.HTTPConnection)(url.hostname,url.port,timeout=15)
+    headers={'Content-Type':'application/json'}
+    if fragmentado:
+        headers['Transfer-Encoding']='chunked'
+        connection.request('POST',url.path+'?'+url.query,body=[payload],headers=headers,encode_chunked=True)
+    else:
+        connection.request('POST',url.path+'?'+url.query,body=payload,headers=headers)
+    response=connection.getresponse(); status=response.status; response.read(); connection.close()
+    assert status==esperado,(tamanho,fragmentado,status,esperado)
+for fragmentado in (False,True):
+    testar_tamanho(65536,fragmentado,401)
+    testar_tamanho(65537,fragmentado,413)
 s=api('login',{'login':'admin','senha':'test-password-123'})
 csrf=s['csrf']
 assert s['operador']['papel']=='admin'

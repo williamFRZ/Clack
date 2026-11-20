@@ -3,6 +3,11 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  iniciador-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python tests/iniciar_clack_test.py
   docker:
     runs-on: ubuntu-latest
     steps:
@@ -34,6 +39,8 @@ jobs:
           /tmp/regras-test
           g++ -std=c++11 -Wall -Wextra -pedantic tests/confirmacao_tag_test.cpp -o /tmp/confirmacao-tag-test
           /tmp/confirmacao-tag-test
+          g++ -std=c++11 -Wall -Wextra -pedantic tests/armario_offline_test.cpp -o /tmp/armario-offline-test
+          /tmp/armario-offline-test
           g++ -std=c++11 -Wall -Wextra -pedantic tests/indicacao_led_test.cpp -o /tmp/indicacao-led-test
           /tmp/indicacao-led-test
       - name: Banco descartável e instalação repetível
@@ -44,7 +51,7 @@ jobs:
           mysql -h127.0.0.1 -uroot < sql/demo.sql
           mysql -h127.0.0.1 -uroot < tests/migration_v2.sql
           printf '%s\n' '<?php return ["db_host"=>"127.0.0.1","db_user"=>"root","db_password"=>"test-only-password","db_name"=>"clack"];' > config/config.local.php
-          printf '%s\n' 'test-password-123' | php bin/configurar.php admin 'Admin Teste'
+          printf '%s\n' 'test-password-123' | php bin/configurar.php admin 'Admin Teste' --senha-stdin
           mysql -h127.0.0.1 -uroot clack -e "UPDATE ambientes SET mapa_x=31.123,mapa_y=40 WHERE nome='Persistida'"
           php bin/configurar.php
           test "$(mysql -h127.0.0.1 -uroot -N clack -e 'SELECT CONCAT(x,CHAR(58),y,CHAR(58),mapa_x) FROM ambientes WHERE nome="Persistida"')" = '321:456:31.123'
@@ -52,6 +59,9 @@ jobs:
           test "$(mysql -h127.0.0.1 -uroot -N clack -e 'SELECT COUNT(*) FROM usuarios')" = 1
           test "$(mysql -h127.0.0.1 -uroot -N clack -e 'SELECT COUNT(*) FROM operadores')" = 1
       - name: Integração HTTP
+        env:
+          CLACK_TEST_DISPOSABLE: '1'
+          CLACK_TEST_URL: http://127.0.0.1:8080/
         run: |
           php -S 127.0.0.1:8080 router.php > /tmp/clack-php.log 2>&1 &
           for i in 1 2 3 4 5; do
@@ -99,3 +109,5 @@ jobs:
         env:
           PLATFORMIO_BUILD_FLAGS: -DCLACK_CI
         run: pio run -d esp32
+      - name: Compilar armário independente
+        run: pio run -d armario_offline

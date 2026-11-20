@@ -1,6 +1,7 @@
 /config/config.local.php
 /esp32/include/config.local.h
 /esp32/.pio/
+/armario_offline/.pio/
 *.log
 __pycache__/
 *.pyc

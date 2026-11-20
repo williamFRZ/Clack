@@ -230,6 +230,9 @@ void setup(){
    if(healthy&&DEVICE_MODE==2){JsonArray cards=state["cartoes"].to<JsonArray>();auto c=cards.add<JsonObject>();c["id"]=1;c["nome"]="Armario";c["uid"]=CABINET_UID;c["perfil"]="completo";persist();}
   }
  }
+ if(healthy&&DEVICE_MODE==0)Serial.printf("Memoria local: sequencia=%lu eventos_pendentes=%u ultimo_comando=%lu estado=%s\n",
+  state["sequencia"].as<unsigned long>(),(unsigned)state["eventos"].size(),
+  state["comando"].as<unsigned long>(),state["estado"]|"desconhecido");
  if(DEVICE_MODE!=2){WiFi.mode(WIFI_STA);WiFi.begin(WIFI_SSID,WIFI_PASSWORD);lastWifi=millis();}
  if(DEVICE_MODE==0)xTaskCreatePinnedToCore(statusLedTask,"status_leds",2048,nullptr,1,nullptr,1);
  screen(healthy||DEVICE_MODE==1?"Pronto":"Verificar memoria","Aproxime o cartao");
