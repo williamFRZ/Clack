@@ -34,10 +34,14 @@ const { chromium } = require(process.env.CLACK_PLAYWRIGHT || '../frontend/node_m
     };
     const logout = async () => {
       await page.getByRole('button', { name: 'Sair', exact: true }).click();
+      await page.getByRole('dialog', { name: 'Deseja mesmo sair?' }).getByRole('button', { name: 'Sair', exact: true }).click();
       await page.getByLabel('Login', { exact: true }).waitFor();
     };
     await page.goto(process.env.CLACK_UI_URL || 'http://127.0.0.1:8090/painel/');
     await login('admin');
+    await page.getByRole('button', { name: 'Sair', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Deseja mesmo sair?' }).getByRole('button', { name: 'Cancelar' }).click();
+    assert.equal(await page.getByRole('button', { name: 'Configurações', exact: true }).count(), 1);
     await page.getByRole('button', { name: 'Configurações', exact: true }).click();
     await page.getByRole('button', { name: 'Cadastrar sala', exact: true }).waitFor();
     await logout();

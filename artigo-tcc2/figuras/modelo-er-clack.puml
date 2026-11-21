@@ -1,0 +1,112 @@
+@startuml
+' Visão lógica resumida do esquema de gestão em sql/gestao.sql (21/11/2026).
+' Atributos selecionados: consultar o SQL para os demais campos e restrições.
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam dpi 240
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #345B6B
+  HeaderBackgroundColor #E8F4F2
+  FontColor #18383C
+  AttributeFontColor #263B42
+}
+skinparam ArrowColor #4E6871
+skinparam linetype ortho
+skinparam nodesep 25
+skinparam ranksep 45
+hide circle
+
+entity "CARTOES" as cartoes {
+  * id : inteiro <<PK>>
+  --
+  uid : texto <<UQ>>
+  nome : texto
+  perfil : categoria
+  ativo : booleano
+}
+entity "PERMISSOES" as permissoes {
+  * cartao_id : inteiro <<PK, FK>>
+  * ambiente_id : inteiro <<PK, FK>>
+}
+entity "AMBIENTES" as ambientes {
+  * id : inteiro <<PK>>
+  --
+  nome : texto
+  estado : categoria
+  responsavel : inteiro <<FK>>
+}
+entity "SALAS_ARQUIVADAS" as arquivadas {
+  * ambiente_id : inteiro <<PK, FK>>
+  arquivada_em : data/hora
+}
+entity "DISPOSITIVOS" as dispositivos {
+  * id : inteiro <<PK>>
+  --
+  nome : texto
+  tipo : categoria
+  ambiente_id : inteiro <<FK, UQ>>
+  ultima_conexao : data/hora
+}
+entity "EVENTOS" as eventos {
+  * id : inteiro <<PK>>
+  --
+  dispositivo_id : inteiro <<FK>>
+  ambiente_id : inteiro <<FK>>
+  sequencia : inteiro
+  uid : texto
+  resultado : texto
+}
+entity "OPERADORES" as operadores {
+  * id : inteiro <<PK>>
+  --
+  nome : texto
+  login : texto <<UQ>>
+  papel : categoria
+}
+entity "COMANDOS" as comandos {
+  * id : inteiro <<PK>>
+  --
+  dispositivo_id : inteiro <<FK>>
+  operador_id : inteiro <<FK>>
+  acao : categoria
+  confirmado_em : data/hora
+}
+entity "CAPTURAS" as capturas {
+  * id : texto <<PK>>
+  --
+  operador_id : inteiro <<FK>>
+  dispositivo_id : inteiro <<FK>>
+  uid : texto
+}
+entity "AUDITORIA" as auditoria {
+  * id : inteiro <<PK>>
+  --
+  operador_id : inteiro <<FK>>
+  acao : texto
+  criado_em : data/hora
+}
+
+cartoes ||--o{ permissoes
+ambientes ||--o{ permissoes
+cartoes |o--o{ ambientes
+ambientes ||--o| arquivadas
+ambientes |o--o| dispositivos
+ambientes ||--o{ eventos
+dispositivos ||--o{ eventos
+dispositivos ||--o{ comandos
+operadores ||--o{ comandos
+dispositivos ||--o{ capturas
+operadores ||--o{ capturas
+operadores ||--o{ auditoria
+
+legend bottom
+  PK: chave primária  |  FK: chave estrangeira  |  UQ: valor único
+  Os atributos são resumidos; EVENTOS.uid não é chave estrangeira.
+  SCHEMA_VERSOES e TENTATIVAS_LOGIN não possuem vínculos por FK.
+endlegend
+@enduml

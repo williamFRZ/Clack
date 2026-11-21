@@ -20,7 +20,9 @@ if($action==='sessao') { exigir_metodo('GET'); resposta_json(['operador'=>$op,'c
 if($action==='logout') { exigir_metodo('POST'); $_SESSION=[]; session_destroy(); resposta_json(['ok'=>true]); }
 if($action==='painel') {
  exigir_metodo('GET');
- resposta_json(['salas'=>rows("SELECT a.*,COALESCE(e.nome,c.nome) responsavel_nome,c.matricula responsavel_matricula,c.externo responsavel_externo,
+ resposta_json(['salas'=>rows("SELECT a.*,(EXISTS(SELECT 1 FROM dispositivos WHERE ambiente_id=a.id)
+ OR EXISTS(SELECT 1 FROM permissoes WHERE ambiente_id=a.id)
+ OR EXISTS(SELECT 1 FROM eventos WHERE ambiente_id=a.id)) requer_arquivo,COALESCE(e.nome,c.nome) responsavel_nome,c.matricula responsavel_matricula,c.externo responsavel_externo,
  CASE WHEN a.estado='em_uso' THEN COALESCE(e.perfil,c.perfil) ELSE NULL END responsavel_perfil,
  CASE WHEN a.estado='em_uso' AND e.resultado IN ('atividade_iniciada','responsabilidade_transferida','portaria_abrir') THEN e.ocorrido_em ELSE NULL END uso_desde,
  CASE WHEN a.estado='em_uso' AND e.resultado IN ('atividade_iniciada','responsabilidade_transferida','portaria_abrir') THEN e.recebido_em ELSE NULL END uso_recebido_em,
@@ -39,9 +41,11 @@ if($action==='painel') {
  LEFT JOIN eventos e ON e.id=(SELECT ev.id FROM eventos ev WHERE ev.dispositivo_id=d.id AND ev.sequencia<=d.ultima_sequencia
  AND ev.resultado IN ('atividade_iniciada','responsabilidade_transferida','atividade_encerrada','portaria_abrir','portaria_fechar','portaria_manutencao','portaria_liberar','reinicio_durante_movimento')
  ORDER BY ev.sequencia DESC LIMIT 1)
+ WHERE NOT EXISTS (SELECT 1 FROM salas_arquivadas ar WHERE ar.ambiente_id=a.id)
  ORDER BY a.andar,a.nome"),
+ 'arquivadas'=>rows('SELECT a.id,a.nome,a.andar FROM salas_arquivadas ar JOIN ambientes a ON a.id=ar.ambiente_id ORDER BY a.andar,a.nome'),
  'cartoes'=>rows('SELECT * FROM cartoes ORDER BY nome'),'permissoes'=>rows('SELECT * FROM permissoes'),
- 'dispositivos'=>rows('SELECT id,nome,tipo,ambiente_id,ativo,ultima_conexao FROM dispositivos ORDER BY nome')]);
+ 'dispositivos'=>rows('SELECT id,nome,tipo,ambiente_id,ativo,ultima_conexao FROM dispositivos WHERE ativo=1 ORDER BY nome')]);
 }
 if($action==='historico') {
  exigir_metodo('GET'); $params=[]; $where='WHERE 1=1'; $auditWhere=''; $auditParams=[];
@@ -90,14 +94,14 @@ case 'cartao':
  if(!$cid&&!$uid) fail('Capture um cartão antes de cadastrar.');
  if($uid && one('SELECT id FROM cartoes WHERE uid=? AND id<>?',[$uid,$cid??0])) fail('Este cartão já está cadastrado.',409);
  $roomIds=$b['salas']??[]; if(!is_array($roomIds)||count($roomIds)>200) fail('Salas inválidas.');
- if($perfil==='ti') $roomIds=array_column(rows('SELECT id FROM ambientes ORDER BY id'),'id');
+ if($perfil==='ti') $roomIds=array_column(rows('SELECT id FROM ambientes WHERE id NOT IN (SELECT ambiente_id FROM salas_arquivadas) ORDER BY id'),'id');
  $roomIds=array_values(array_unique(array_map(fn($v)=>id(['id'=>$v]),$roomIds)));
- foreach($roomIds as $rid) if(!one('SELECT id FROM ambientes WHERE id=?',[$rid])) fail('Sala não encontrada.');
+ foreach($roomIds as $rid) if(!one('SELECT id FROM ambientes WHERE id=? AND id NOT IN (SELECT ambiente_id FROM salas_arquivadas FOR SHARE) FOR UPDATE',[$rid])) fail('Sala não encontrada.');
  $active=($b['ativo']??true)===true?1:0;
  if($active && $uid && $perfil==='ti' && (int)one("SELECT COUNT(*) total FROM cartoes WHERE perfil='ti' AND ativo=1 AND uid IS NOT NULL AND id<>?",[$cid??0])['total']>=100) fail('Limite de 100 cartões TI atingido.',409);
  if($active && $uid) foreach($roomIds as $rid) {
   // Serialize policy edits per room so concurrent operators cannot exceed cache capacity.
-  one('SELECT id FROM ambientes WHERE id=? FOR UPDATE',[$rid]);
+  one('SELECT id FROM ambientes WHERE id=? AND id NOT IN (SELECT ambiente_id FROM salas_arquivadas FOR SHARE) FOR UPDATE',[$rid]);
   $count=one("SELECT COUNT(*) total FROM cartoes c LEFT JOIN permissoes p ON p.cartao_id=c.id AND p.ambiente_id=?
    WHERE (p.ambiente_id IS NOT NULL OR c.perfil='ti') AND c.ativo=1 AND c.uid IS NOT NULL AND c.id<>?",[$rid,$cid??0]);
   if((int)$count['total']>=100) fail('Limite de 100 cartões ativos por sala atingido.',409);
@@ -122,7 +126,7 @@ case 'sala':
  if(!one('SELECT versao FROM schema_versoes WHERE versao=3 FOR UPDATE')) fail('Atualize o banco com bin/configurar.php.',503);
  $x=filter_var($b['x']??0,FILTER_VALIDATE_INT); $y=filter_var($b['y']??0,FILTER_VALIDATE_INT);
  if($x===false||$y===false||$x<0||$y<0||$x>850||$y>850) fail('Posição deve estar entre 0 e 850.');
- $old=isset($b['id'])?one('SELECT * FROM ambientes WHERE id=? FOR UPDATE',[id($b)]):null;
+ $old=isset($b['id'])?one('SELECT * FROM ambientes WHERE id=? AND id NOT IN (SELECT ambiente_id FROM salas_arquivadas FOR SHARE) FOR UPDATE',[id($b)]):null;
  if(isset($b['id'])&&!$old) fail('Sala não encontrada.',404);
  if(array_key_exists('mapa_x',$b)||array_key_exists('mapa_y',$b)) [$mapX,$mapY]=mapa_posicao($b);
  else { $sameFloor=$old && $old['andar']===$floor; $mapX=$sameFloor?$old['mapa_x']:null; $mapY=$sameFloor?$old['mapa_y']:null; }
@@ -132,9 +136,28 @@ case 'sala':
   q('INSERT INTO ambientes(nome,andar,categoria,x,y,mapa_x,mapa_y) VALUES(?,?,?,?,?,?,?)',[$name,$floor,$cat,$x,$y,$mapX,$mapY]); $rid=$conexao->insert_id;
  }
  audit($op,'sala_salva',['id'=>$rid]); break;
+case 'excluir_sala':
+case 'arquivar_sala':
+ operator(true);
+ $rid=id($b);
+ one('SELECT versao FROM schema_versoes WHERE versao=3 FOR UPDATE');
+ $device=one('SELECT id FROM dispositivos WHERE ambiente_id=? FOR UPDATE',[$rid]);
+ $room=one('SELECT nome,andar,estado FROM ambientes WHERE id=? FOR UPDATE',[$rid]);
+ if(!$room || one('SELECT ambiente_id FROM salas_arquivadas WHERE ambiente_id=? FOR UPDATE',[$rid])) fail('Sala não encontrada.',404);
+ if(!in_array($room['estado'],['disponivel','manutencao'],true)) fail('Encerre a atividade ou resolva o estado da sala antes de removê-la.',409);
+ if($device && one('SELECT id FROM comandos WHERE dispositivo_id=? AND confirmado_em IS NULL AND expira_em>UTC_TIMESTAMP() LIMIT 1 FOR UPDATE',[$device['id']])) fail('Aguarde a conclusão do comando pendente.',409);
+ if($action==='excluir_sala') {
+  if($room['estado']!=='disponivel' || $device || one('SELECT cartao_id FROM permissoes WHERE ambiente_id=? LIMIT 1 FOR UPDATE',[$rid]) || one('SELECT id FROM eventos WHERE ambiente_id=? LIMIT 1 FOR UPDATE',[$rid])) fail('Sala com vínculos ou uso anterior. Atualize o painel e arquive a sala.',409);
+  q('DELETE FROM ambientes WHERE id=?',[$rid]);
+ } else {
+  q('INSERT INTO salas_arquivadas(ambiente_id) VALUES(?)',[$rid]);
+  q('DELETE FROM permissoes WHERE ambiente_id=?',[$rid]);
+  if($device) q('UPDATE dispositivos SET ativo=0 WHERE id=?',[$device['id']]);
+ }
+ audit($op,$action==='excluir_sala'?'sala_excluida':'sala_arquivada',['id'=>$rid,'nome'=>$room['nome'],'andar'=>$room['andar']]); break;
 case 'posicao_sala':
  operator(true); $rid=id($b); [$mapX,$mapY]=mapa_posicao($b);
- if(!one('SELECT id FROM ambientes WHERE id=? FOR UPDATE',[$rid])) fail('Sala não encontrada.',404);
+ if(!one('SELECT id FROM ambientes WHERE id=? AND id NOT IN (SELECT ambiente_id FROM salas_arquivadas FOR SHARE) FOR UPDATE',[$rid])) fail('Sala não encontrada.',404);
  q('UPDATE ambientes SET mapa_x=?,mapa_y=? WHERE id=?',[$mapX,$mapY,$rid]);
  audit($op,'posicao_sala_salva',['id'=>$rid,'mapa_x'=>$mapX,'mapa_y'=>$mapY]); break;
 case 'comando':
@@ -188,8 +211,8 @@ case 'rotacionar_dispositivo':
  q('UPDATE comandos SET expira_em=UTC_TIMESTAMP() WHERE dispositivo_id=? AND confirmado_em IS NULL',[$did]);
  audit($op,'token_rotacionado',['id'=>$did]); $conexao->commit(); resposta_json(['id'=>$did,'token'=>$token]);
 case 'dispositivo':
- operator(true); $name=txt($b,'nome'); $type=choice($b,'tipo',['tranca','cadastrador']); $room=$type==='tranca'?id($b,'sala'):null;
- if($room && (!one('SELECT id FROM ambientes WHERE id=?',[$room]) || one('SELECT id FROM dispositivos WHERE ambiente_id=?',[$room]))) fail('Sala inexistente ou já vinculada.');
+ operator(true); one('SELECT versao FROM schema_versoes WHERE versao=3 FOR UPDATE'); $name=txt($b,'nome'); $type=choice($b,'tipo',['tranca','cadastrador']); $room=$type==='tranca'?id($b,'sala'):null;
+ if($room && (!one('SELECT id FROM ambientes WHERE id=? AND id NOT IN (SELECT ambiente_id FROM salas_arquivadas FOR SHARE) FOR UPDATE',[$room]) || one('SELECT id FROM dispositivos WHERE ambiente_id=?',[$room]))) fail('Sala inexistente ou já vinculada.');
  $token=bin2hex(random_bytes(32)); q('INSERT INTO dispositivos(nome,tipo,ambiente_id,token_hash) VALUES(?,?,?,?)',[$name,$type,$room,hash('sha256',$token)]);
  $did=$conexao->insert_id; audit($op,'dispositivo_criado',['id'=>$did]); $conexao->commit(); resposta_json(['id'=>$did,'token'=>$token]);
 default: fail('Ação desconhecida.',404);

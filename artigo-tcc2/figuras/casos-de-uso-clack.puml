@@ -1,0 +1,69 @@
+@startuml
+' Clack — controle de acesso às salas, versão do repositório em 21/11/2026.
+' A construção e a figura não contêm dados reais de usuários ou dispositivos.
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 16
+skinparam dpi 180
+skinparam actor {
+  BorderColor #103D34
+  BackgroundColor #F1F8F3
+  FontColor #172F2A
+}
+skinparam usecase {
+  BorderColor #357066
+  BackgroundColor #FFFFFF
+  FontColor #203C36
+}
+skinparam rectangle {
+  BorderColor #357066
+  BackgroundColor #FFFFFF
+  FontColor #103D34
+}
+skinparam package {
+  BorderColor #C9DAD4
+  BackgroundColor #F8FBF9
+  FontColor #103D34
+}
+skinparam ArrowColor #566D65
+skinparam Linetype polyline
+skinparam nodesep 30
+skinparam ranksep 45
+title Clack — Casos de uso do controle de acesso
+
+actor "Usuário\nautorizado" as Pessoa
+actor "Operador da portaria" as Portaria
+actor "Administrador" as Admin
+Admin -|> Portaria
+
+rectangle "Clack · controle de acesso às salas" {
+  package "Uso da tranca" {
+    usecase "Iniciar uso de sala\ncom cartão autorizado" as Iniciar
+    usecase "Encerrar o próprio uso\ne trancar a sala" as Encerrar
+    usecase "Assumir sala em uso\n(professor ou completo, 3 s)" as Assumir
+    usecase "Acessar sala em uso\nsem assumir (TI)" as AcessoTI
+  }
+  package "Gestão pelo painel" {
+    usecase "Entrar no painel" as Login
+    usecase "Consultar salas\ne histórico" as Consultar
+    usecase "Gerenciar cartões\ne permissões" as Cartoes
+    usecase "Enviar comandos\nà tranca" as Comandos
+    usecase "Gerenciar salas\ne dispositivos" as Ambientes
+    usecase "Gerenciar contas\nde operadores" as Contas
+  }
+}
+
+Pessoa -- Iniciar
+Pessoa -- Encerrar
+Pessoa -- Assumir
+Pessoa -- AcessoTI
+Portaria -- Login
+Portaria -- Consultar
+Portaria -- Cartoes
+Portaria -- Comandos
+Admin -- Ambientes
+Admin -- Contas
+
+@enduml

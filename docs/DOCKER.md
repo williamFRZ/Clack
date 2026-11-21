@@ -159,7 +159,7 @@ consulta históricos e envia comandos. Cada pessoa deve usar sua própria conta.
    Use zoom se necessário; X/Y são preenchidos automaticamente e podem ser
    editados pelo teclado. Trocar de andar limpa a posição anterior.
    Para ajustar depois, em Ambientes escolha o andar, clique em **Posicionar
-   salas**, selecione a sala, clique na planta e finalize com **Concluir posicionamento**.
+   salas**, arraste o ícone até a posição desejada e finalize com **Concluir posicionamento**.
 3. Faça isso para todas as salas. Marcadores tracejados são posições provisórias;
    a planta não identifica automaticamente a sala pelo cadastro.
 4. Use zoom e confira os marcadores. As posições salvas acompanham o zoom e a

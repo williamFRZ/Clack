@@ -1,6 +1,30 @@
 # Checklist Clack — 07/10/2026
 
+## Preparação do artigo do TCC II
+- [x] Separar as referências de Gonçalves (2019), Costa (2020) e Silva (2022) em BibTeX e preparar um rascunho de citação.
+- [x] Elaborar primeira versão do artigo no modelo SBC a partir do TCC I corrigido e dos resultados registrados, com as referências selecionadas e espaços para novas imagens.
+- [x] Produzir modelo lógico resumido do banco de gestão em PlantUML, PNG e SVG, baseado em `sql/gestao.sql`.
+- [ ] Revisar autoria, objetivos e texto com William e orientadores; inserir imagens reais e confirmar metadados das referências indicadas em `artigo-tcc2/LEIA-ME.md`.
+- [ ] Confrontar e integrar o projeto original do artigo quando os arquivos forem fornecidos, e compilar a versão final.
+
 ## Software desenvolvido nesta etapa (validar na bancada)
+- [x] Produzir diagrama PlantUML de casos de uso do controle de acesso às salas, com versões PNG e SVG para o artigo.
+- [x] Ocultar a barra visual do resumo flutuante das salas.
+- [x] Posicionar o resumo flutuante sem cobrir o marcador, usando o espaço disponível na tela.
+- [x] Suavizar a mudança de cor dos ícones das salas.
+- [x] Remover o círculo ao passar o cursor sobre o marcador, mantendo o foco visível para navegação por teclado.
+- [x] Posicionar salas arrastando os marcadores, sem salto ao pressionar, e animar o símbolo e a cor ao mudar de estado; validação com API simulada e zoom.
+- [x] Aplicar o símbolo Clack aos marcadores e legenda, com cadeado fechado em disponibilidade e aberto nos demais estados, preservando as cores.
+- [x] Ocultar o quadro repetido abaixo da planta e preservar o resumo ao apontar, os detalhes ao clicar e a descrição acessível.
+- [x] Solicitar confirmação antes de encerrar a sessão, em janela do painel com opção de cancelar.
+- [x] Animar as contagens de estado para cima ao aumentar e para baixo ao diminuir, com suporte a movimento reduzido.
+- [x] Aplicar fundos suaves aos cartões de estado, com cores conferidas nos temas claro e escuro.
+- [x] Atualizar os cartões de estado com indicadores circulares discretos.
+- [x] Simplificar a tela de login, removendo os textos introdutório e de uso local.
+- [x] Simplificar o cadastro de dispositivo: exigir a sala somente para trancas e remover o indicador “Servidor local” do cabeçalho. Comportamento verificado no navegador.
+- [x] Medir 50 trancas simuladas em dez períodos de uso, com verificação de histórico, estado das salas, latência e reinícios em Docker descartável.
+- [x] Excluir salas vazias e arquivar salas com vínculos pelo painel administrativo; testar autorização, preservação do histórico e bloqueio da credencial em banco descartável.
+- [x] Aplicar a marca oficial Clack v2 ao login, à navegação e ao ícone da aba. Login verificado no navegador em 1280 px (tema claro) e 390 px (tema escuro).
 - [x] Instalação de banco não destrutiva, configuração fora do Git.
 - [x] Login individual, administrador/portaria, CSRF e auditoria.
 - [x] Limitar o tamanho real dos pedidos JSON, inclusive fragmentados sem Content-Length; validação em servidor descartável.
@@ -105,7 +129,7 @@ após executá-los nos dispositivos reais.
 
 ## Depois do protótipo
 - [ ] Implementar HTTPS para uso além da bancada/rede isolada.
-- [ ] Decidir se MQTT continua no escopo; a versão atual usa HTTP autenticado.
+- [x] Registrar a decisão para o protótipo do TCC II: usar HTTP autenticado. MQTT era a proposta inicial.
 - [ ] Avaliar proteção contra clonagem de UID para eventual implantação real.
 
 ## Upgrades futuros para o mestrado
@@ -130,7 +154,7 @@ Ainda cotar: fonte, proteção/acionamento adequado, buzzer, conectores/fios, fi
 
 - [x] Implementar diagnóstico por sala: sem dispositivo, primeiro contato, online e sem comunicação recente; idade do último contato calculada pelo servidor.
 - [ ] Compilar e validar diagnóstico em português/espanhol.
-- [ ] Criar iniciador automático: gravação do script bloqueada pela política de aprovação nesta sessão.
+- [x] Disponibilizar o iniciador Windows e o guia de instalação rápida.
 
 - [x] Implementar backup Docker com nomes únicos, tratamento de falhas e checksum; documentar servidor central.
 - [ ] Executar backup real e ensaio de restauração em banco descartável.
@@ -139,4 +163,5 @@ Ainda cotar: fonte, proteção/acionamento adequado, buzzer, conectores/fios, fi
 
 - [x] Executar testes de estado/posicionamento das salas.
 - [x] Reforçar isolamento da suíte e adicionar verificações dos campos de acompanhamento de comandos.
-- [ ] Executar integração Docker atualizada e concluir matriz física em docs/VALIDACAO.md.
+- [x] Executar integração Docker em ambiente descartável e registrar medição da sincronização com 1 e 5 clientes simulados na [revisão do TCC](REVISAO-TCC-2026-11-20.md).
+- [ ] Concluir os cenários físicos pendentes na matriz de validação, identificando a versão da placa.

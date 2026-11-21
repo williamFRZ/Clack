@@ -1,0 +1,61 @@
+{
+  "data_simulada": "2026-11-19",
+  "duracao_s": 60.04,
+  "estatisticas": {
+    "abertura": {
+      "n": 500,
+      "erros": 0,
+      "mediana_ms": 172.0085,
+      "p95_ms": 370.345,
+      "p99_ms": 396.948,
+      "max_ms": 454.017
+    },
+    "consulta": {
+      "n": 2000,
+      "erros": 0,
+      "mediana_ms": 86.2185,
+      "p95_ms": 193.799,
+      "p99_ms": 219.264,
+      "max_ms": 285.854
+    },
+    "fechamento": {
+      "n": 500,
+      "erros": 0,
+      "mediana_ms": 166.7095,
+      "p95_ms": 296.818,
+      "p99_ms": 354.329,
+      "max_ms": 371.671
+    },
+    "painel": {
+      "n": 60,
+      "erros": 0,
+      "mediana_ms": 94.7915,
+      "p95_ms": 202.348,
+      "p99_ms": 286.993,
+      "max_ms": 286.993
+    },
+    "trancas": {
+      "n": 3000,
+      "erros": 0,
+      "mediana_ms": 96.6865,
+      "p95_ms": 280.298,
+      "p99_ms": 364.415,
+      "max_ms": 454.017
+    }
+  },
+  "eventos": 1000,
+  "salas_com_historico_divergente": 0,
+  "estados_divergentes": 0,
+  "servicos": {
+    "db": {
+      "saude": "healthy",
+      "reinicios": 0,
+      "mesmo_container": true
+    },
+    "web": {
+      "saude": "healthy",
+      "reinicios": 0,
+      "mesmo_container": true
+    }
+  }
+}

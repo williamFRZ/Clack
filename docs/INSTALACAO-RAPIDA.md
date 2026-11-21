@@ -6,6 +6,8 @@ leia primeiro [Trocar de computador](#trocar-de-computador).
 
 ## 1. Preparar o computador
 
+Para o protótipo com até 50 trancas simuladas, use como referência inicial um PC x86-64 com 4 processadores lógicos, 8 GB de RAM e 20 GB livres em SSD. Consulte as [medições e os limites do ensaio](ensaios/hardware-50-2026-11-20/README.md), especialmente se o computador também for usado como estação da portaria.
+
 Instale [Git](https://git-scm.com/downloads) e
 [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/).
 Abra o Docker Desktop, use containers Linux e espere a inicialização terminar.

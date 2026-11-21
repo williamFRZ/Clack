@@ -1,7 +1,8 @@
+import logoClaro from "./assets/marca/clack-claro.svg";
+import logoEscuro from "./assets/marca/clack-escuro.svg";
 import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  DoorOpen,
   Layers,
   Users,
   History,
@@ -71,11 +72,9 @@ const translationsEs = {
   "Responsabilidade transferida": "Responsabilidad transferida",
   "Carregando Clack…": "Cargando Clack…",
   "Bem-vindo à portaria.": "Bienvenido a portería.",
-  "Entre para acompanhar os ambientes e gerenciar acessos.": "Inicie sesión para consultar los espacios y gestionar los accesos.",
   "Login": "Usuario",
   "Senha": "Contraseña",
   "Entrar": "Ingresar",
-  "Uso local · IFSul": "Uso local · IFSul",
   "Ambientes": "Espacios",
   "Cartões": "Tarjetas",
   "Histórico": "Historial",
@@ -86,11 +85,12 @@ const translationsEs = {
   "escuro": "oscuro",
   "claro": "claro",
   "Sair": "Salir",
+  "Deseja mesmo sair?": "¿Desea cerrar sesión?",
+  "Cancelar": "Cancelar",
   "PÁGINA INICIAL": "INICIO",
   "Ambientes do campus": "Espacios del campus",
   "Cartões de acesso": "Tarjetas de acceso",
   "Histórico de atividades": "Historial de actividades",
-  "Servidor local": "Servidor local",
   "Fechar": "Cerrar",
   "Planta baixa do IFSul": "Plano del IFSul",
   "Selecione um andar para consultar a planta e suas salas.": "Seleccione un piso para consultar el plano y sus salas.",
@@ -120,6 +120,7 @@ const translationsEs = {
   "Abrir imagem": "Abrir imagen",
   "Posicionar salas": "Ubicar salas",
   "Concluir posicionamento": "Finalizar ubicación",
+  "Arraste o ícone da sala até a posição desejada.": "Arrastre el ícono de la sala hasta la posición deseada.",
   "Sala para posicionar": "Sala para ubicar",
   " — posição provisória": " — ubicación provisional",
   "Salvando posição…": "Guardando ubicación…",
@@ -179,6 +180,14 @@ const translationsEs = {
   "Sem relógio válido no dispositivo, o horário do evento fica desconhecido; a ordem é preservada pela sequência.": "Sin un reloj válido en el dispositivo, se desconoce la hora del evento; el orden se conserva mediante la secuencia.",
   "Nenhuma ação da portaria neste período.": "No hay acciones de portería en este período.",
   "Ambientes e dispositivos": "Espacios y dispositivos",
+  "Excluir sala": "Eliminar sala",
+  "Arquivar sala": "Archivar sala",
+  "Arquivada": "Archivada",
+  "Excluir definitivamente o cadastro vazio?": "¿Eliminar definitivamente el registro vacío?",
+  "Arquivar e remover as permissões desta sala? O histórico será preservado.": "¿Archivar y quitar los permisos de esta sala? Se conservará el historial.",
+  "Antes de confirmar, sincronize os eventos e retire a tranca de serviço. Os cartões offline continuam na placa.": "Antes de confirmar, sincronice los eventos y retire la cerradura de servicio. Las tarjetas sin conexión permanecen en la placa.",
+  "Sala excluída.": "Sala eliminada.",
+  "Sala arquivada.": "Sala archivada.",
   "Cadastrar sala": "Registrar sala",
   "Cadastrar dispositivo": "Registrar dispositivo",
   "Editar posição": "Editar ubicación",
@@ -255,7 +264,6 @@ const translationsEs = {
   "Tipo": "Tipo",
   "Tranca": "Cerradura",
   "Cadastrador": "Lector de registro",
-  "Sala (apenas tranca)": "Sala (solo para cerraduras)",
   "Selecione": "Seleccione",
   "Salvar": "Guardar",
   "Idioma": "Idioma",
@@ -322,15 +330,84 @@ const LanguageContext = React.createContext(null);
 function useLanguage() {
   return React.useContext(LanguageContext) || { language: "pt-BR", setLanguage: () => {}, t: (text) => text };
 }
+function RollingCount({ value }) {
+  const [previous, setPrevious] = useState(value);
+  const [transition, setTransition] = useState(false);
+  const [direction, setDirection] = useState("up");
+  const current = useRef(value);
+  useEffect(() => {
+    if (current.current === value) return;
+    setPrevious(current.current);
+    setDirection(value < current.current ? "down" : "up");
+    current.current = value;
+    setTransition(true);
+    const timer = setTimeout(() => setTransition(false), 420);
+    return () => clearTimeout(timer);
+  }, [value]);
+  return <strong className="rolling-count" aria-label={String(value)}>
+    <span className={`rolling-window rolling-${direction}`} aria-hidden="true">
+      {transition && <span key={"old-" + value} className="rolling-old">{previous}</span>}
+      <span key={"new-" + value} className={transition ? "rolling-new" : ""}>{value}</span>
+    </span>
+  </strong>;
+}
+const lockColors = { available: "#16a34a", occupied: "#dc2626", it: "#f97316", cleaning: "#eab308", maintenance: "#526675", unknown: "#526675" };
+const closedHandle = "M10 62V43C10 22 23 9 44 9H52C71 9 82 20 82 38V62H69V38C69 27 63 22 52 22H44C31 22 23 30 23 43V62Z";
+const openHandle = "M10 62V43C10 22 23 9 44 9H52C71 9 82 20 82 38V43H69V38C69 27 63 22 52 22H44C31 22 23 30 23 43V62Z";
+function ClackLockIcon({ closed = false, previousClosed = null, size = 25, className }) {
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return <svg className={className} width={size} height={size} viewBox="0 0 128 128" aria-hidden="true">
+    <path fill="currentColor" d={closed ? closedHandle : openHandle}>
+      {previousClosed !== null && previousClosed !== closed && !reduced && <animate attributeName="d" from={previousClosed ? closedHandle : openHandle} to={closed ? closedHandle : openHandle} dur="0.6s" fill="freeze" />}
+    </path>
+    <path fill="currentColor" fillRule="evenodd" d="M10 60H76Q82 60 82 66V106Q82 116 72 116H20Q10 116 10 106ZM58.9 84a6.1 6.1 0 1 0 12.2 0a6.1 6.1 0 1 0 -12.2 0Z" />
+    <path fill="currentColor" d="M90.7 43.6 99.9 30.3Q101.2 28.4 103.1 30L109.1 35.3Q111.2 37.3 108.3 38.7L92.2 45.7Q89.5 46.8 90.7 43.6ZM94 51.7 115.7 48.5Q118 48.1 118 50.6V57.5Q118 60 115.6 59.6L94 55.3Q90.9 54.7 94 51.7ZM91.3 61.3 107 68.7Q109.5 69.8 107.7 72L103.1 77.2Q101.3 79.2 99.6 76.9L89.7 63.2Q88.1 60.1 91.3 61.3Z" />
+  </svg>;
+}
+function AnimatedClackIcon({ status }) {
+  const prior = useRef(status);
+  const [animation, setAnimation] = useState(null);
+  useEffect(() => {
+    if (prior.current === status) return;
+    setAnimation({ from: prior.current, to: status });
+    prior.current = status;
+    const timer = setTimeout(() => setAnimation(null), 650);
+    return () => clearTimeout(timer);
+  }, [status]);
+  const from = animation?.from;
+  return <span className="clack-icon-animation">
+    {animation && <span className="clack-icon-old" style={{color:lockColors[from]}} aria-hidden="true">
+      <ClackLockIcon closed={from === "available"} />
+    </span>}
+    <span key={animation ? animation.to : "steady"} className={animation ? "clack-icon-current is-changing" : "clack-icon-current"} style={{color:lockColors[status]}} aria-hidden="true">
+      <ClackLockIcon className="door-marker-icon" closed={status === "available"} previousClosed={animation ? from === "available" : null} />
+    </span>
+  </span>;
+}
 function ClackLogo({ large = false }) {
-  return <div className={`brand${large ? " brand-login" : ""}`} aria-label="Clack">
-    <svg className="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
-      <path d="M7 42V8.5A2.5 2.5 0 0 1 9.5 6H25v36" fill="none" stroke="var(--brand-frame)" strokeWidth="3.2" strokeLinejoin="round"/>
-      <path d="M14 16l16-4v30H14z" fill="var(--brand-panel)"/>
-      <circle cx="25.5" cy="29" r="1.8" fill="var(--brand-signal)"/>
-      <path d="m34 13 4-4 2 6zM37 21l6-1v5zM34 29l4 4 2-6z" fill="var(--brand-signal)"/>
-    </svg>
-    <strong className="brand-name">CLACK</strong>
+  return <div className={`brand${large ? " brand-login" : ""}`}>
+    <img className="logo-claro" src={logoClaro} alt="Clack" width="367" height="124" />
+    <img className="logo-escuro" src={logoEscuro} alt="Clack" width="367" height="124" />
+  </div>;
+}
+function LogoutConfirmation({ cancel, confirm }) {
+  const { t } = useLanguage();
+  const [busy, setBusy] = useState(false);
+  const cancelRef = useRef(null);
+  useEffect(() => {
+    cancelRef.current?.focus();
+    const onKey = event => {
+      if (event.key === "Escape") cancel();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+  return <div className="logout-confirmation">
+    <h2>{t("Deseja mesmo sair?")}</h2>
+    <div className="logout-actions">
+      <button type="button" className="secondary" ref={cancelRef} disabled={busy} onClick={cancel}>{t("Cancelar")}</button>
+      <button type="button" disabled={busy} onClick={() => { setBusy(true); Promise.resolve(confirm()).finally(() => setBusy(false)); }}>{t("Sair")}</button>
+    </div>
   </div>;
 }
 function LanguageSwitcher() {
@@ -560,7 +637,7 @@ function App() {
     try {
       const r = await api(action, body);
       setNotice(
-        t(action === "comando" ? "Comando enviado. Aguardando confirmação da tranca." : action === "posicao_sala" ? "Posição na planta salva." : "Alteração salva. Permissões chegam às trancas na próxima sincronização."),
+        t(action === "excluir_sala" ? "Sala excluída." : action === "arquivar_sala" ? "Sala arquivada." : action === "comando" ? "Comando enviado. Aguardando confirmação da tranca." : action === "posicao_sala" ? "Posição na planta salva." : "Alteração salva. Permissões chegam às trancas na próxima sincronização."),
       );
       await refresh();
       return r;
@@ -633,7 +710,6 @@ function App() {
         >
           <ClackLogo large />
           <h1>{t("Bem-vindo à portaria.")}</h1>
-          <p>{t("Entre para acompanhar os ambientes e gerenciar acessos.")}</p>
           <label>
             {t("Login")}
             <input name="login" autoComplete="username" required />
@@ -653,7 +729,6 @@ function App() {
             </p>
           )}
           <button>{t("Entrar")}</button>
-          <small>{t("Uso local · IFSul")}</small>
         </form>
       </main>
       </LanguageContext.Provider>
@@ -702,15 +777,7 @@ function App() {
           </button>
           <button
             className="quiet"
-            onClick={() =>
-              api("logout", {})
-                .then(() => {
-                  csrf = "";
-                  resetNavigation();
-                  setOp(null);
-                })
-                .catch(report)
-            }
+            onClick={() => setModal({ kind: "logout" })}
           >
             <LogOut size={17} />
             {t("Sair")}
@@ -721,7 +788,7 @@ function App() {
         <header>
           <div>
             <span className="eyebrow">
-              CLACK / {tab === "salas" ? t("PÁGINA INICIAL") : t(tab === "cartoes" ? "Cartões" : tab === "historico" ? "Histórico" : "Configurações").toLocaleUpperCase(language)}
+              Clack / {tab === "salas" ? t("PÁGINA INICIAL") : t(tab === "cartoes" ? "Cartões" : tab === "historico" ? "Histórico" : "Configurações").toLocaleUpperCase(language)}
             </span>
             <h1>
               {
@@ -733,11 +800,6 @@ function App() {
                 }[tab]
               }
             </h1>
-          </div>
-          <div className="header-actions">
-            <span className="local">
-              <i />{t("Servidor local")}
-            </span>
           </div>
         </header>
         {error && (
@@ -763,9 +825,7 @@ function App() {
                 <section className={`status-metric status-metric-${status.key}`} key={status.key}>
                   <span className={"dot occupancy-" + status.key} />
               <span>{t(status.label)}</span>
-                  <strong>
-                    {data.salas.filter((s) => roomStatus(s).key === status.key).length}
-                  </strong>
+                  <RollingCount value={data.salas.filter((s) => roomStatus(s).key === status.key).length} />
                 </section>
               ))}
             </div>
@@ -919,6 +979,9 @@ function App() {
                   onChange={(e) => { setHistoryBefore(null); setFilter(e.target.value); }}
                 >
                   <option value="">{t("Todas as salas")}</option>
+                  {(data.arquivadas || []).map((s) => (
+                    <option key={s.id} value={s.id}>{s.nome} · {t("Arquivada")}</option>
+                  ))}
                   {data.salas.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.nome}
@@ -1037,6 +1100,16 @@ function App() {
                   >
                     {t("Editar posição")}
                   </button>
+                  <button className="danger" disabled={s.estado === "em_uso" || s.estado === "erro" || s.comando_status === "pendente"}
+                    onClick={() => {
+                      const archive = Number(s.requer_arquivo) || s.estado === "manutencao";
+                      const prompt = archive ? t("Arquivar e remover as permissões desta sala? O histórico será preservado.") : t("Excluir definitivamente o cadastro vazio?");
+                      const hardware = s.dispositivo_id ? "\n" + t("Antes de confirmar, sincronize os eventos e retire a tranca de serviço. Os cartões offline continuam na placa.") : "";
+                      if (window.confirm(s.nome + " · " + t(s.andar) + "\n" + prompt + hardware))
+                        save(archive ? "arquivar_sala" : "excluir_sala", { id: s.id }).catch(() => {});
+                    }}>
+                    {t(Number(s.requer_arquivo) || s.estado === "manutencao" ? "Arquivar sala" : "Excluir sala")}
+                  </button>
                 </div>
               ))}
               {data.dispositivos.map((d) => (
@@ -1100,7 +1173,7 @@ function App() {
             className="dialog"
             role="dialog"
             aria-modal="true"
-            aria-label={t("Detalhes e cadastro")}
+            aria-label={t(modal.kind === "logout" ? "Deseja mesmo sair?" : "Detalhes e cadastro")}
           >
             <button
               className="close quiet"
@@ -1109,7 +1182,15 @@ function App() {
             >
               ×
             </button>
-            {modal.kind === "room" ? (
+            {modal.kind === "logout" ? (
+              <LogoutConfirmation cancel={() => setModal(null)} confirm={() =>
+                api("logout", {}).then(() => {
+                  csrf = "";
+                  resetNavigation();
+                  setOp(null);
+                }).catch(report)
+              } />
+            ) : modal.kind === "room" ? (
               <Room
                 room={
                   data.salas.find((s) => s.id === modal.value.id) || modal.value
@@ -1181,9 +1262,14 @@ function FloorPlan({ floor, rooms = [], canEdit = false, save, onSelect }) {
   const [zoom, setZoom] = useState(1);
   const [peek, setPeek] = useState(null);
   const [peekAnchor, setPeekAnchor] = useState(null);
+  const markerRef = useRef(null);
+  const popoverRef = useRef(null);
   const [editing, setEditing] = useState(false);
   const [placing, setPlacing] = useState("");
   const [savingPosition, setSavingPosition] = useState(false);
+  const [dragPosition, setDragPosition] = useState(null);
+  const stageRef = useRef(null);
+  const dragRef = useRef(null);
   const [imageRatio, setImageRatio] = useState(1491 / 1055);
   const [portrait, setPortrait] = useState(false);
   const [fitWidth, setFitWidth] = useState(0);
@@ -1191,23 +1277,80 @@ function FloorPlan({ floor, rooms = [], canEdit = false, save, onSelect }) {
   const ordered = [...rooms].sort((a, b) => Number(a.id) - Number(b.id));
   const shownRoom = rooms.find(room => room.id === peek);
   const unpositioned = rooms.filter(room => !hasMapPosition(room));
-  const placementRoom = rooms.find(room => String(room.id) === placing);
   function reveal(room, event) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setPeekAnchor({
-      left: Math.max(8, Math.min(window.innerWidth - 288, rect.left + rect.width / 2 - 140)),
-      top: window.innerHeight - rect.bottom >= 310 ? rect.bottom + 8 : Math.max(8, rect.top - 310),
-    });
+    markerRef.current = event.currentTarget;
+    setPeekAnchor(null);
     setPeek(room.id);
   }
-  async function place(event) {
-    if (!placementRoom || savingPosition) return;
-    const coordinates = relativePosition(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
-    if (!coordinates) return;
+  React.useLayoutEffect(() => {
+    if (!peek || editing || !popoverRef.current || !markerRef.current) return;
+    const gap = 14, margin = 8;
+    const marker = markerRef.current.getBoundingClientRect();
+    const popup = popoverRef.current;
+    const width = popup.offsetWidth, height = popup.scrollHeight;
+    const above = marker.top - gap - margin;
+    const below = window.innerHeight - marker.bottom - gap - margin;
+    const right = window.innerWidth - marker.right - gap - margin;
+    const left = marker.left - gap - margin;
+    const clamp = (v, min, max) => Math.max(min, Math.min(v, Math.max(min, max)));
+    if (above >= height || below >= height || Math.max(above, below) >= Math.max(right, left)) {
+      const useAbove = above >= height || (below < height && above >= below);
+      const available = Math.max(0, useAbove ? above : below);
+      const maxHeight = Math.min(height, available);
+      setPeekAnchor({
+        left: clamp(marker.left + marker.width / 2 - width / 2, margin, window.innerWidth - width - margin),
+        top: useAbove ? marker.top - gap - maxHeight : marker.bottom + gap,
+        maxHeight, visibility: "visible",
+      });
+    } else {
+      const useRight = right >= width || right >= left;
+      const availableWidth = Math.max(0, useRight ? right : left);
+      const actualWidth = Math.min(width, availableWidth);
+      setPeekAnchor({
+        left: useRight ? marker.right + gap : marker.left - gap - actualWidth,
+        top: clamp(marker.top + marker.height / 2 - height / 2, margin, window.innerHeight - height - margin),
+        width: actualWidth, maxHeight: window.innerHeight - 2 * margin, visibility: "visible",
+      });
+    }
+  }, [peek, editing, rooms]);
+  useEffect(() => {
+    if (!peek) return;
+    const dismiss = () => { setPeek(null); setPeekAnchor(null); };
+    window.addEventListener("scroll", dismiss, true);
+    window.addEventListener("resize", dismiss);
+    return () => { window.removeEventListener("scroll", dismiss, true); window.removeEventListener("resize", dismiss); };
+  }, [peek]);
+  function dragStart(event, room) {
+    if (!editing || savingPosition || event.button !== 0) return;
+    const marker = event.currentTarget.getBoundingClientRect();
+    dragRef.current = { id: room.id, pointer: event.pointerId,
+      offsetX: event.clientX - (marker.left + marker.width / 2),
+      offsetY: event.clientY - (marker.top + marker.height / 2), moved: false,
+      startX: event.clientX, startY: event.clientY };
+    setPlacing(String(room.id));
+    setPeek(null);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function dragMove(event) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointer !== event.pointerId) return;
+    if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 3) drag.moved = true;
+    if (!drag.moved) return;
+    const point = relativePosition(event.clientX - drag.offsetX, event.clientY - drag.offsetY, stageRef.current.getBoundingClientRect());
+    if (point) setDragPosition({ id: drag.id, ...point });
+  }
+  async function dragEnd(event) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointer !== event.pointerId) return;
+    dragRef.current = null;
+    if (event.type === "pointercancel" || !drag.moved) { setDragPosition(null); return; }
+    const point = relativePosition(event.clientX - drag.offsetX, event.clientY - drag.offsetY, stageRef.current.getBoundingClientRect());
+    if (!point) { setDragPosition(null); return; }
+    setDragPosition({ id: drag.id, ...point });
     setSavingPosition(true);
-    try { await save("posicao_sala", { id: placementRoom.id, ...coordinates }); }
+    try { await save("posicao_sala", { id: drag.id, ...point }); }
     catch { /* O painel já apresenta o erro retornado pelo servidor. */ }
-    finally { setSavingPosition(false); }
+    finally { setSavingPosition(false); setDragPosition(null); }
   }
   useEffect(() => {
     const element = viewport.current;
@@ -1229,8 +1372,8 @@ function FloorPlan({ floor, rooms = [], canEdit = false, save, onSelect }) {
   const src = floorImage(floor);
   if (src && !failed) return <div className="floor-viewer" aria-label={`${t("Planta baixa")} — ${t(floor)}`}>
     <div className="floor-legend" aria-label={t("Legenda de disponibilidade")}>
-      {ROOM_STATUSES.map(status => <span key={status.key}><i className={`legend-door occupancy-${status.key}`} aria-hidden="true"><DoorOpen size={17} strokeWidth={2.4}/></i>{t(status.label)}</span>)}
-      <span><i className="legend-door occupancy-maintenance" aria-hidden="true"><DoorOpen size={17} strokeWidth={2.4}/></i>{t("Manutenção / verificar")}</span>
+      {ROOM_STATUSES.map(status => <span key={status.key}><i className={`legend-door occupancy-${status.key}`} aria-hidden="true"><ClackLockIcon size={17} closed={status.key === "available"}/></i>{t(status.label)}</span>)}
+      <span><i className="legend-door occupancy-maintenance" aria-hidden="true"><ClackLockIcon size={17}/></i>{t("Manutenção / verificar")}</span>
     </div>
     <div className="floor-tools">
       <span>{t("Planta do ")}{t(floor).toLocaleLowerCase("es-UY")}</span>
@@ -1248,45 +1391,40 @@ function FloorPlan({ floor, rooms = [], canEdit = false, save, onSelect }) {
       </div>
     </div>
     {editing && <div className="map-editor">
-      <label>{t("Sala para posicionar")}
-        <select aria-label={t("Sala para posicionar")} value={placing} disabled={savingPosition} onChange={event => setPlacing(event.target.value)}>
-          {rooms.map(room => <option key={room.id} value={room.id}>{room.nome}{!hasMapPosition(room) ? t(" — posição provisória") : ""}</option>)}
-        </select>
-      </label>
-      <p role="status">{savingPosition ? t("Salvando posição…") : `${t("Clique no centro de ")}${placementRoom?.nome || t("uma sala")}${t(" na planta para salvar a posição. O posicionamento não abre a tranca.")}`}</p>
+      <p role="status">{savingPosition ? t("Salvando posição…") : t("Arraste o ícone da sala até a posição desejada.")}</p>
       <small>{t("Para posicionar usando o teclado, abra Configurações → Editar posição e informe X/Y em porcentagem.")}</small>
     </div>}
     <div ref={viewport} className="floor-viewport" tabIndex="0" aria-label={t("Planta ampliável; use a rolagem para explorar")} onWheel={() => setPeek(null)}>
-      <div className="floor-image-stage" style={{width: fitWidth ? `${fitWidth * zoom}px` : `${zoom*100}%`, aspectRatio: imageRatio, "--plan-ratio": imageRatio}}>
+      <div ref={stageRef} className="floor-image-stage" style={{width: fitWidth ? `${fitWidth * zoom}px` : `${zoom*100}%`, aspectRatio: imageRatio, "--plan-ratio": imageRatio}}>
         <img className={`floor-plan-image${portrait ? " portrait" : ""}`} src={src} alt={`${t("Planta baixa do IFSul")} — ${t(floor)}`}
           onLoad={event => {
             const { naturalWidth: width, naturalHeight: height } = event.currentTarget;
             setPortrait(height > width);
             setImageRatio(Math.max(width, height) / Math.min(width, height));
           }} onError={() => setFailed(true)} />
-        {editing && <button type="button" className="map-placement-surface" tabIndex={-1} disabled={savingPosition || !placementRoom}
-          aria-label={t("Clique na planta para posicionar a sala selecionada")} onClick={place} />}
         {ordered.map((room, index) => {
-          const position = markerPosition(room, index, floor);
+          const savedPosition = markerPosition(room, index, floor);
+          const position = dragPosition?.id === room.id ? { x: dragPosition.mapa_x, y: dragPosition.mapa_y, provisional: savedPosition.provisional } : savedPosition;
           const status = roomStatus(room);
           return <button key={room.id} type="button"
-            className={`room-marker occupancy-${status.key}${position.provisional ? " provisional" : ""}${editing && placing === String(room.id) ? " placing" : ""}`}
+            className={`room-marker${editing ? " is-editing" : ""} occupancy-${status.key}${position.provisional ? " provisional" : ""}${editing && placing === String(room.id) ? " placing" : ""}`}
             style={{ left: `${position.x}%`, top: `${position.y}%` }}
             data-room-id={room.id} data-provisional={position.provisional}
             aria-label={`${room.nome} — ${t(status.label)}${position.provisional ? t(" — posição provisória") : ""}`}
             aria-describedby={shownRoom?.id === room.id ? `room-preview-${floor.replace(" ", "-")}` : undefined}
-            onMouseEnter={event => reveal(room, event)} onMouseLeave={() => setPeek(null)}
+            onPointerDown={event => dragStart(event, room)} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}
+            onMouseEnter={event => { if (!editing) reveal(room, event); }} onMouseLeave={() => setPeek(null)}
             onFocus={event => reveal(room, event)} onBlur={() => setPeek(null)}
             onKeyDown={event => { if (event.key === "Escape") setPeek(null); }}
             onClick={() => { setPeek(null); if (editing) setPlacing(String(room.id)); else onSelect?.(room); }}>
-            <DoorOpen className="door-marker-icon" size={25} strokeWidth={2.5} aria-hidden="true" />
+            <AnimatedClackIcon status={status.key} />
             {(status.key === "maintenance" || status.key === "unknown") && <span className="door-marker-warning" aria-hidden="true">!</span>}
             <span className="marker-label" aria-hidden="true">{room.nome}</span>
           </button>;
         })}
       </div>
     </div>
-    {shownRoom && peekAnchor && !editing && <div className="room-hover-popover" style={peekAnchor} aria-hidden="true">
+    {shownRoom && !editing && <div ref={popoverRef} className="room-hover-popover" style={peekAnchor || { visibility: "hidden" }} aria-hidden="true">
       <h3>{shownRoom.nome}</h3><OccupancyDetails room={shownRoom} />
     </div>}
     <div className="room-map-preview" id={`room-preview-${floor.replace(" ", "-")}`} aria-live="polite">
@@ -1698,7 +1836,7 @@ function RoomPositionPicker({ floor, position, onPosition }) {
           const next = relativePosition(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
           if (next) onPosition(next);
         }}/>
-        {positioned && <span className="draft-room-marker" style={{ left: `${position.mapa_x}%`, top: `${position.mapa_y}%` }} aria-hidden="true"><DoorOpen size={20} strokeWidth={2.5}/></span>}
+        {positioned && <span className="draft-room-marker" style={{ left: `${position.mapa_x}%`, top: `${position.mapa_y}%` }} aria-hidden="true"><ClackLockIcon size={20} closed/></span>}
       </div>
     </div>
     <p role="status">{t(positioned ? "Posição definida. Clique em Salvar para gravar o cadastro." : "Nenhuma posição escolhida. Também é possível preencher X/Y pelo teclado.")}</p>
@@ -1707,6 +1845,7 @@ function RoomPositionPicker({ floor, position, onPosition }) {
 function Setup({ kind, value, data, save, close }) {
   const { t } = useLanguage();
   const [result, setResult] = useState(null);
+  const [deviceType, setDeviceType] = useState("");
   const [setupFloor, setSetupFloor] = useState(normalizeFloor(value?.andar) || value?.andar || FLOORS[0]);
   const [setupPosition, setSetupPosition] = useState({ mapa_x: value?.mapa_x ?? "", mapa_y: value?.mapa_y ?? "" });
   return (
@@ -1891,14 +2030,15 @@ function Setup({ kind, value, data, save, close }) {
             <>
               <label>
                 {t("Tipo")}
-                <select name="tipo">
+                <select name="tipo" required value={deviceType} onChange={event => setDeviceType(event.target.value)}>
+                  <option value="">{t("Selecione")}</option>
                   <option value="tranca">{t("Tranca")}</option>
                   <option value="cadastrador">{t("Cadastrador")}</option>
                 </select>
               </label>
-              <label>
-                {t("Sala (apenas tranca)")}
-                <select name="sala">
+              {deviceType === "tranca" && <label>
+                {t("Sala")}
+                <select name="sala" required>
                   <option value="">{t("Selecione")}</option>
                   {data.salas
                     .filter((s) => !s.dispositivo_id)
@@ -1908,7 +2048,7 @@ function Setup({ kind, value, data, save, close }) {
                       </option>
                     ))}
                 </select>
-              </label>
+              </label>}
             </>
           )}
           <button>{t("Salvar")}</button>

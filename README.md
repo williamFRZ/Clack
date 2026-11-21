@@ -67,7 +67,7 @@ Para um armário independente, existe um [programa offline separado](docs/ARMARI
 - LEDs indicam a contagem da troca em vermelho, amarelo e verde, um segundo cada, e confirmam a ação local com três piscadas verdes de 200 ms aceso e 200 ms apagado.
 - Comandos remotos com validade e confirmação; histórico sem duplicação na reconexão.
 - Cache de permissões e até 64 eventos persistentes no ESP32; eventos sem hora conhecida ficam identificados.
-- Interface clara/escura e em português/espanhol (Uruguai), com idioma persistido por navegador; plantas por andar com portas coloridas pelo estado e posição ajustável por clique.
+- Interface clara/escura e em português/espanhol (Uruguai), com idioma persistido por navegador; plantas por andar com cadeados coloridos pelo estado e posição ajustável por arraste.
 
 A comunicação implementada é HTTP autenticado. MQTT não está implementado. Antes de uso real, avaliar HTTPS, clonagem de UID, política offline e realizar testes físicos. Estado exibido não confirma a posição mecânica: não há sensor de porta/trinco.
 

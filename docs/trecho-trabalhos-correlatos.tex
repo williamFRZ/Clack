@@ -1,0 +1,26 @@
+% Rascunho de complemento à seção de trabalhos correlatos do TCC II.
+% Preservar os trabalhos já citados no TCC I e integrar estas referências
+% após receber o .tex e o .bib originais. As chaves abaixo estão em
+% referencias-selecionadas-clack.bib.
+
+Um sistema de controle de acesso a laboratório foi desenvolvido com ESP32 e
+identificação por radiofrequência (RFID), acompanhado de uma aplicação web de
+gerenciamento. O dispositivo se comunica com o servidor pelo protocolo HTTP,
+e os dados são armazenados em um banco MySQL. No trabalho, a aplicação e o
+banco foram hospedados no serviço Amazon EC2 \cite{goncalves2019rfidweb}.
+
+Outra proposta reúne ESP32, etiquetas RFID e um servidor Apache, com uma
+aplicação em PHP e banco de dados MySQL. O sistema também utiliza um aplicativo
+móvel para o cadastro e a remoção de etiquetas \cite{costa2020esp32rfid}.
+
+Em contexto de instituição de ensino, o IF Access foi proposto para controlar
+o acesso aos ambientes do Instituto Federal da Paraíba por meio de RFID e
+microcontrolador. O trabalho relata simulações envolvendo o gerenciamento de
+usuários, ambientes e horários de acesso \cite{silva2022ifaccess}.
+
+Assim como os trabalhos apresentados, o Clack integra identificação por RFID
+ao gerenciamento informatizado de acessos. Na versão desenvolvida, o servidor
+é executado localmente e a tranca utiliza permissões armazenadas para continuar
+operando durante a indisponibilidade de rede, conforme as condições de
+sincronização do sistema. A verificação de horários de aula permanece como
+possibilidade de desenvolvimento futuro.

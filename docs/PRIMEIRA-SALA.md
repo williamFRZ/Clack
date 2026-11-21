@@ -26,12 +26,11 @@ não associa uma tranca nem concede acesso a cartões automaticamente.
 
 1. Abra **Ambientes** e selecione o mesmo andar.
 2. Clique em **Posicionar salas**.
-3. Em **Sala para posicionar**, selecione a sala criada.
-4. Clique no centro dessa sala na planta, ajustando o zoom se necessário.
-5. Aguarde a mensagem **Posição na planta salva** e clique em
+3. Arraste o ícone da sala até a posição desejada na planta, ajustando o zoom se necessário.
+4. Aguarde a mensagem **Posição na planta salva** e clique em
    **Concluir posicionamento**.
 
-O ícone de porta verde indica uma sala disponível. As coordenadas são percentuais
+O cadeado verde fechado indica uma sala disponível. As coordenadas são percentuais
 e continuam válidas com zoom e no celular. Para corrigir, repita o procedimento
 ou abra **Configurações → Editar posição**.
 

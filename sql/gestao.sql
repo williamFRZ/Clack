@@ -17,6 +17,10 @@ CREATE TABLE IF NOT EXISTS ambientes (
  estado ENUM('disponivel','em_uso','manutencao','erro') NOT NULL DEFAULT 'disponivel', responsavel INT NULL,
  FOREIGN KEY (responsavel) REFERENCES cartoes(id)
 ) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS salas_arquivadas (
+ ambiente_id INT PRIMARY KEY, arquivada_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(ambiente_id) REFERENCES ambientes(id)
+) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS permissoes (
  cartao_id INT NOT NULL, ambiente_id INT NOT NULL, PRIMARY KEY(cartao_id,ambiente_id),
  FOREIGN KEY(cartao_id) REFERENCES cartoes(id), FOREIGN KEY(ambiente_id) REFERENCES ambientes(id)
