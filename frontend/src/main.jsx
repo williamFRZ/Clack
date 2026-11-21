@@ -86,6 +86,9 @@ const translationsEs = {
   "claro": "claro",
   "Sair": "Salir",
   "Deseja mesmo sair?": "¿Desea cerrar sesión?",
+  "Deseja realmente excluir?": "¿Realmente desea eliminar?",
+  "Excluir": "Eliminar",
+  "Arquivar": "Archivar",
   "Cancelar": "Cancelar",
   "PÁGINA INICIAL": "INICIO",
   "Ambientes do campus": "Espacios del campus",
@@ -185,7 +188,7 @@ const translationsEs = {
   "Arquivada": "Archivada",
   "Excluir definitivamente o cadastro vazio?": "¿Eliminar definitivamente el registro vacío?",
   "Arquivar e remover as permissões desta sala? O histórico será preservado.": "¿Archivar y quitar los permisos de esta sala? Se conservará el historial.",
-  "Antes de confirmar, sincronize os eventos e retire a tranca de serviço. Os cartões offline continuam na placa.": "Antes de confirmar, sincronice los eventos y retire la cerradura de servicio. Las tarjetas sin conexión permanecen en la placa.",
+  "Antes de confirmar, retire a tranca de serviço. Os cartões offline continuam na placa.": "Antes de confirmar, retire la cerradura de servicio. Las tarjetas sin conexión permanecen en la placa.",
   "Sala excluída.": "Sala eliminada.",
   "Sala arquivada.": "Sala archivada.",
   "Cadastrar sala": "Registrar sala",
@@ -390,7 +393,7 @@ function ClackLogo({ large = false }) {
     <img className="logo-escuro" src={logoEscuro} alt="Clack" width="367" height="124" />
   </div>;
 }
-function LogoutConfirmation({ cancel, confirm }) {
+function LogoutConfirmation({ cancel, confirm, title = "Deseja mesmo sair?", button = "Sair", children }) {
   const { t } = useLanguage();
   const [busy, setBusy] = useState(false);
   const cancelRef = useRef(null);
@@ -403,10 +406,11 @@ function LogoutConfirmation({ cancel, confirm }) {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
   return <div className="logout-confirmation">
-    <h2>{t("Deseja mesmo sair?")}</h2>
+    <h2>{t(title)}</h2>
+    {children}
     <div className="logout-actions">
       <button type="button" className="secondary" ref={cancelRef} disabled={busy} onClick={cancel}>{t("Cancelar")}</button>
-      <button type="button" disabled={busy} onClick={() => { setBusy(true); Promise.resolve(confirm()).finally(() => setBusy(false)); }}>{t("Sair")}</button>
+      <button type="button" disabled={busy} onClick={() => { setBusy(true); Promise.resolve(confirm()).finally(() => setBusy(false)); }}>{t(button)}</button>
     </div>
   </div>;
 }
@@ -1103,10 +1107,7 @@ function App() {
                   <button className="danger" disabled={s.estado === "em_uso" || s.estado === "erro" || s.comando_status === "pendente"}
                     onClick={() => {
                       const archive = Number(s.requer_arquivo) || s.estado === "manutencao";
-                      const prompt = archive ? t("Arquivar e remover as permissões desta sala? O histórico será preservado.") : t("Excluir definitivamente o cadastro vazio?");
-                      const hardware = s.dispositivo_id ? "\n" + t("Antes de confirmar, sincronize os eventos e retire a tranca de serviço. Os cartões offline continuam na placa.") : "";
-                      if (window.confirm(s.nome + " · " + t(s.andar) + "\n" + prompt + hardware))
-                        save(archive ? "arquivar_sala" : "excluir_sala", { id: s.id }).catch(() => {});
+                      setModal({ kind: "remove-room", value: s, archive: Boolean(archive) });
                     }}>
                     {t(Number(s.requer_arquivo) || s.estado === "manutencao" ? "Arquivar sala" : "Excluir sala")}
                   </button>
@@ -1173,7 +1174,7 @@ function App() {
             className="dialog"
             role="dialog"
             aria-modal="true"
-            aria-label={t(modal.kind === "logout" ? "Deseja mesmo sair?" : "Detalhes e cadastro")}
+            aria-label={t(modal.kind === "logout" ? "Deseja mesmo sair?" : modal.kind === "remove-room" ? (modal.archive ? "Arquivar e remover as permissões desta sala? O histórico será preservado." : "Deseja realmente excluir?") : "Detalhes e cadastro")}
           >
             <button
               className="close quiet"
@@ -1190,6 +1191,13 @@ function App() {
                   setOp(null);
                 }).catch(report)
               } />
+            ) : modal.kind === "remove-room" ? (
+              <LogoutConfirmation cancel={() => setModal(null)}
+                title={modal.archive ? "Arquivar e remover as permissões desta sala? O histórico será preservado." : "Deseja realmente excluir?"}
+                button={modal.archive ? "Arquivar" : "Excluir"}
+                confirm={() => save(modal.archive ? "arquivar_sala" : "excluir_sala", { id: modal.value.id }).then(() => setModal(null)).catch(() => {})}>
+                {modal.archive && modal.value.dispositivo_id && <p>{t("Antes de confirmar, retire a tranca de serviço. Os cartões offline continuam na placa.")}</p>}
+              </LogoutConfirmation>
             ) : modal.kind === "room" ? (
               <Room
                 room={

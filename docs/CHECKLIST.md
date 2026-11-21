@@ -8,6 +8,7 @@
 - [ ] Confrontar e integrar o projeto original do artigo quando os arquivos forem fornecidos, e compilar a versão final.
 
 ## Software desenvolvido nesta etapa (validar na bancada)
+- [x] Substituir a confirmação do navegador ao excluir ou arquivar uma sala por uma janela do painel, preservando os avisos de arquivamento.
 - [x] Produzir diagrama PlantUML de casos de uso do controle de acesso às salas, com versões PNG e SVG para o artigo.
 - [x] Ocultar a barra visual do resumo flutuante das salas.
 - [x] Posicionar o resumo flutuante sem cobrir o marcador, usando o espaço disponível na tela.
