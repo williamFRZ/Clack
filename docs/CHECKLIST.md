@@ -1,6 +1,8 @@
 # Checklist Clack — 07/10/2026
 
 ## Preparação do artigo do TCC II
+- [x] Implementar restauração do servo da tranca de sala ao reiniciar, com estado local e proteção contra reinício durante movimento.
+- [ ] Validar fisicamente a retomada após corte de energia, com servo calibrado e mecanismo livre, incluindo estados aberto, fechado, manutenção e movimento interrompido.
 - [x] Apresentar eventos da portaria no histórico com nomes legíveis e identificar o responsável como Portaria quando não houver pessoa associada.
 - [x] Separar as referências de Gonçalves (2019), Costa (2020) e Silva (2022) em BibTeX e preparar um rascunho de citação.
 - [x] Elaborar primeira versão do artigo no modelo SBC a partir do TCC I corrigido e dos resultados registrados, com as referências selecionadas e espaços para novas imagens.

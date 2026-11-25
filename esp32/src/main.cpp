@@ -10,6 +10,7 @@
 #include <Adafruit_SSD1306.h>
 #include <time.h>
 #include "regras.h"
+#include "restauracao_posicao.h"
 #include "confirmacao_tag.h"
 #include "indicacao_led.h"
 #if __has_include("config.local.h")
@@ -97,7 +98,7 @@ bool event(const char* result,JsonObjectConst card=JsonObjectConst()){
  return true;
 }
 void actuate(bool open){
- // Attach only for a requested motion, never automatically on reboot.
+ // Inicia o PWM apenas quando for executar um movimento.
  if(!servo.attached()){servo.setPeriodHertz(50);servo.attach(SERVO_PIN,500,2400);}
  servo.write(open?SERVO_ABERTO:SERVO_FECHADO);
  delay(450);
@@ -228,6 +229,19 @@ void setup(){
     screen("Verificar tranca","Movimento interrompido");
    }
    if(healthy&&DEVICE_MODE==2){JsonArray cards=state["cartoes"].to<JsonArray>();auto c=cards.add<JsonObject>();c["id"]=1;c["nome"]="Armario";c["uid"]=CABINET_UID;c["perfil"]="completo";persist();}
+  }
+ }
+ // A recuperação usa o último estado local confirmado, mesmo sem servidor.
+ // Registre a intenção antes de mover para detectar outra interrupção de energia.
+ PosicaoAoReiniciar destino=posicaoAoReiniciar(DEVICE_MODE,healthy,
+   state["pending"].as<bool>(),state["estado"]|"erro");
+ if(destino!=PosicaoAoReiniciar::NaoMover){
+  state["pending"]=true;
+  if(persist()){
+   screen("Restaurando posicao");
+   actuate(destino==PosicaoAoReiniciar::Aberta);
+   state["pending"]=false;
+   persist();
   }
  }
  if(healthy&&DEVICE_MODE==0)Serial.printf("Memoria local: sequencia=%lu eventos_pendentes=%u ultimo_comando=%lu estado=%s\n",

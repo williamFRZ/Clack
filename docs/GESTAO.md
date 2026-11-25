@@ -2,6 +2,8 @@
 
 Esta versão substitui painel, API e firmware juntos. As quatro APIs antigas respondem 410 para impedir acesso sem autenticação. Não misture o firmware antigo com este servidor.
 
+Ao reiniciar, a tranca de sala restaura a posição conforme o último estado local: disponível e manutenção solicitam fechamento; em uso solicita abertura. Essa decisão funciona offline e antecede a sincronização do servidor. Reinício durante movimento, memória inválida ou estado de erro impedem a restauração automática. A aplicação não mede a posição física e não faz calibração do servo; teste na bancada antes de instalar. O cadastrador e o programa independente do armário não são alterados.
+
 ## Instalar
 
 Para instalar servidor/painel com containers, siga **[DOCKER.md](DOCKER.md)**.

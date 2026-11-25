@@ -69,6 +69,8 @@ Para um armário independente, existe um [programa offline separado](docs/ARMARI
 - Cache de permissões e até 64 eventos persistentes no ESP32; eventos sem hora conhecida ficam identificados.
 - Interface clara/escura e em português/espanhol (Uruguai), com idioma persistido por navegador; plantas por andar com cadeados coloridos pelo estado e posição ajustável por arraste.
 
+Ao religar, a tranca de sala aplica ao servo a posição correspondente ao último estado local salvo, mesmo sem conexão. Em caso de movimento interrompido ou estado de erro, não há reposicionamento automático; verifique a montagem. A posição real não é medida por sensor. Teste primeiro na bancada.
+
 A comunicação implementada é HTTP autenticado. MQTT não está implementado. Antes de uso real, avaliar HTTPS, clonagem de UID, política offline e realizar testes físicos. Estado exibido não confirma a posição mecânica: não há sensor de porta/trinco.
 
 ## Desenvolver e verificar

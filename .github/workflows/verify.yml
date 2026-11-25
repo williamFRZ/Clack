@@ -37,6 +37,8 @@ jobs:
           find . -name '*.php' -not -path './frontend/node_modules/*' -print0 | xargs -0 -n1 php -l
           g++ -std=c++11 -Wall -Wextra -pedantic tests/regras_test.cpp -o /tmp/regras-test
           /tmp/regras-test
+          g++ -std=c++11 -Wall -Wextra -pedantic tests/restauracao_posicao_test.cpp -o /tmp/restauracao-posicao-test
+          /tmp/restauracao-posicao-test
           g++ -std=c++11 -Wall -Wextra -pedantic tests/confirmacao_tag_test.cpp -o /tmp/confirmacao-tag-test
           /tmp/confirmacao-tag-test
           g++ -std=c++11 -Wall -Wextra -pedantic tests/armario_offline_test.cpp -o /tmp/armario-offline-test

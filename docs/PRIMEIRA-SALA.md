@@ -86,6 +86,7 @@ Para o armário independente, o cadastro é feito diretamente no leitor do
 ## 5. Conferir o funcionamento
 
 Teste primeiro na bancada, com o servo calibrado e alimentação adequada.
+Ao religar, o servo poderá se movimentar automaticamente para a posição do último estado salvo, mesmo sem rede. Verifique abertura, fechamento e retorno de energia com o mecanismo livre. Se houve interrupção durante movimento ou erro de memória, confira a tranca: ela não retomará a posição automaticamente.
 Com a sala disponível, aproxime o cartão autorizado. Confira o resultado no
 OLED, no painel e no Histórico. Retire o cartão antes de aproximá-lo novamente.
 Ao iniciar uma atividade, a sala passa a mostrar responsável e início de uso.

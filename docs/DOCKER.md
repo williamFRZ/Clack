@@ -256,7 +256,7 @@ Para atualizar firmware/configuração, use apenas compilação e `upload`,
 preservando LittleFS. A troca/reinicialização de hardware exige reprovisão
 controlada; não reutilize uma identidade com a sequência zerada.
 
-Confira pinagem, alimentação e calibração do servo em [GESTAO.md](GESTAO.md).
+Confira pinagem, alimentação e calibração do servo em [GESTAO.md](GESTAO.md). Ao religar, a tranca de sala pode movimentar o servo para restaurar o último estado salvo, inclusive offline; teste essa retomada com o mecanismo livre, conforme o guia.
 Na tranca 204 sem OLED, use os LEDs descritos ali: vermelho para ocupado/erro,
 verde para disponível e amarelo piscando a cada 500 ms enquanto não sincroniza
 com o servidor. Na confirmação de troca, vermelho, amarelo e verde acendem em
