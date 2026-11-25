@@ -1,6 +1,7 @@
 # Checklist Clack — 07/10/2026
 
 ## Preparação do artigo do TCC II
+- [x] Apresentar eventos da portaria no histórico com nomes legíveis e identificar o responsável como Portaria quando não houver pessoa associada.
 - [x] Separar as referências de Gonçalves (2019), Costa (2020) e Silva (2022) em BibTeX e preparar um rascunho de citação.
 - [x] Elaborar primeira versão do artigo no modelo SBC a partir do TCC I corrigido e dos resultados registrados, com as referências selecionadas e espaços para novas imagens.
 - [x] Produzir modelo lógico resumido do banco de gestão em PlantUML, PNG e SVG, baseado em `sql/gestao.sql`.

@@ -178,7 +178,10 @@ const translationsEs = {
   "Pessoa": "Persona",
   "Resultado": "Resultado",
   "Recebido": "Recibido",
-  "Portaria / sistema": "Portería / sistema",
+  "Abertura pela portaria": "Apertura por portería",
+  "Fechamento pela portaria": "Cierre por portería",
+  "Manutenção pela portaria": "Mantenimiento por portería",
+  "Liberação pela portaria": "Liberación por portería",
   "Eventos anteriores": "Eventos anteriores",
   "Sem relógio válido no dispositivo, o horário do evento fica desconhecido; a ordem é preservada pela sequência.": "Sin un reloj válido en el dispositivo, se desconoce la hora del evento; el orden se conserva mediante la secuencia.",
   "Nenhuma ação da portaria neste período.": "No hay acciones de portería en este período.",
@@ -477,6 +480,10 @@ const eventLabels = {
   atividade_iniciada: "Atividade iniciada",
   atividade_encerrada: "Atividade encerrada",
   responsabilidade_transferida: "Responsabilidade transferida",
+  portaria_abrir: "Abertura pela portaria",
+  portaria_fechar: "Fechamento pela portaria",
+  portaria_manutencao: "Manutenção pela portaria",
+  portaria_liberar: "Liberação pela portaria",
 };
 const normalizedSearch = (value) =>
   String(value ?? "")
@@ -1038,7 +1045,7 @@ function App() {
                         <tr key={e.id}>
                           <td>{date(e.ocorrido_em, language)}</td>
                           <td>{e.sala}</td>
-                          <td>{e.nome || t("Portaria / sistema")}</td>
+                          <td>{e.nome || t("Portaria")}</td>
                           <td>{t(eventLabels[e.resultado] || e.resultado)}</td>
                           <td>{date(e.recebido_em, language)}</td>
                         </tr>
