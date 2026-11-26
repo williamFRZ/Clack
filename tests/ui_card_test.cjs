@@ -81,8 +81,12 @@ const { chromium } = require(process.env.CLACK_PLAYWRIGHT || '../frontend/node_m
     assert.equal(saved, 2, 'Cadastrar dois cartões sem fechar e reabrir o primeiro formulário');
     assert.equal(cancelled, 1, 'Salvar não deve cancelar a leitura seguinte');
     await page.getByRole('row').filter({ hasText: 'Primeiro cartão' }).getByRole('button', { name: 'Editar', exact: true }).click();
-    page.once('dialog', d => d.accept());
     await dialog.getByRole('button', { name: 'Revogar acesso', exact: true }).click();
+    const confirmacao = page.getByRole('alertdialog');
+    await confirmacao.getByRole('button', { name: 'Cancelar' }).click();
+    assert.equal(sample.cartoes.find(c => c.nome === 'Primeiro cartão').ativo, 1, 'Cancelar preserva o acesso');
+    await dialog.getByRole('button', { name: 'Revogar acesso', exact: true }).click();
+    await confirmacao.getByRole('button', { name: 'Confirmar' }).click();
     await dialog.waitFor({ state: 'hidden' });
     const firstCard = sample.cartoes.find(c => c.nome === 'Primeiro cartão');
     assert.equal(firstCard.ativo, 0);

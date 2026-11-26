@@ -177,6 +177,7 @@ const screenshotDirectory = process.env.CLACK_SCREENSHOT_DIR || "/tmp";
   const maintenanceButton = availableDialog.getByRole("button", { name: "Trancar para manutenção", exact: true });
   if (await maintenanceButton.evaluate((button) => getComputedStyle(button).backgroundColor) !== "rgb(220, 38, 38)") throw Error("Ação de manutenção sem cor vermelha");
   await maintenanceButton.click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Confirmar" }).click();
   const endMaintenanceButton = availableDialog.getByRole("button", { name: "Encerrar manutenção", exact: true });
   await endMaintenanceButton.waitFor();
   if (await endMaintenanceButton.evaluate((button) => getComputedStyle(button).backgroundColor) !== "rgb(21, 128, 61)") throw Error("Ação para encerrar manutenção sem cor verde");

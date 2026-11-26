@@ -90,6 +90,7 @@ const translationsEs = {
   "Excluir": "Eliminar",
   "Arquivar": "Archivar",
   "Cancelar": "Cancelar",
+  "Confirmar": "Confirmar",
   "PÁGINA INICIAL": "INICIO",
   "Ambientes do campus": "Espacios del campus",
   "Cartões de acesso": "Tarjetas de acceso",
@@ -492,6 +493,8 @@ const normalizedSearch = (value) =>
     .toLocaleLowerCase("pt-BR")
     .trim();
 function App() {
+  const [confirmation, setConfirmation] = useState(null);
+  const askConfirmation = (title, action) => setConfirmation({ title, action });
   const [op, setOp] = useState(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
@@ -1154,11 +1157,11 @@ function App() {
                     <button
                       className="quiet"
                       onClick={() => {
-                        if (confirm(t("Bloquear acesso de ") + o.nome + t("?")))
+                        askConfirmation(t("Bloquear acesso de ") + o.nome + t("?"), () =>
                           save("bloquear_operador", { id: o.id })
                             .then(() => api("operadores"))
                             .then((d) => setOperators(d.operadores))
-                            .catch(() => {});
+                            .catch(() => {}));
                       }}
                     >
                       {t("Bloquear")}
@@ -1207,6 +1210,7 @@ function App() {
               </LogoutConfirmation>
             ) : modal.kind === "room" ? (
               <Room
+                askConfirmation={askConfirmation}
                 room={
                   data.salas.find((s) => s.id === modal.value.id) || modal.value
                 }
@@ -1214,6 +1218,7 @@ function App() {
               />
             ) : modal.kind === "card" ? (
               <Card
+                askConfirmation={askConfirmation}
                 value={modal.value}
                 data={data}
                 save={save}
@@ -1238,6 +1243,15 @@ function App() {
           </section>
         </div>
       )}
+    {confirmation && <div className="overlay confirmation-overlay" onClick={event => { if (event.target === event.currentTarget) setConfirmation(null); }}>
+      <section className="dialog" role="alertdialog" aria-modal="true" aria-label={confirmation.title}>
+        <LogoutConfirmation title={confirmation.title} button="Confirmar" cancel={() => setConfirmation(null)} confirm={async () => {
+          const action = confirmation.action;
+          setConfirmation(null);
+          await action();
+        }} />
+      </section>
+    </div>}
     </div>
     </LanguageContext.Provider>
   );
@@ -1482,7 +1496,7 @@ function historyQuery(room, day, before) {
   const query = params.toString();
   return `historico${query ? `&${query}` : ""}`;
 }
-function Room({ room: s, save }) {
+function Room({ room: s, save, askConfirmation }) {
   const { language, t } = useLanguage();
   const [sending, setSending] = useState(false);
   const pending = s.comando_status === "pendente";
@@ -1518,8 +1532,7 @@ function Room({ room: s, save }) {
             key={cmd}
             disabled={!Number(s.online) || sending || pending}
             onClick={() => {
-              if (confirm(t(label) + " " + s.nome + "?"))
-                sendCommand(cmd);
+              askConfirmation(t(label) + " " + s.nome + "?", () => sendCommand(cmd));
             }}
           >
             {t(label)}
@@ -1529,8 +1542,7 @@ function Room({ room: s, save }) {
           className={`room-maintenance-action${maintenanceActive ? " is-maintenance-active" : ""}`}
           disabled={!Number(s.online) || sending || pending}
           onClick={() => {
-            if (confirm(t(maintenanceLabel) + " " + s.nome + "?"))
-              sendCommand(maintenanceCommand);
+            askConfirmation(t(maintenanceLabel) + " " + s.nome + "?", () => sendCommand(maintenanceCommand));
           }}
         >
           {t(maintenanceLabel)}
@@ -1539,7 +1551,7 @@ function Room({ room: s, save }) {
     </>
   );
 }
-function Card({ value, data, save, report, close }) {
+function Card({ value, data, save, report, close, askConfirmation }) {
   const { t } = useLanguage();
   const [form, setForm] = useState(
       value
@@ -1798,8 +1810,8 @@ function Card({ value, data, save, report, close }) {
         {!value && <button value="next" disabled={busy || (entryMode === "reader" ? (!reader || !uid) : !/^(?:[0-9A-F]{2}:){3}[0-9A-F]{2}$|^(?:[0-9A-F]{2}:){6}[0-9A-F]{2}$|^(?:[0-9A-F]{2}:){9}[0-9A-F]{2}$/i.test(manualUid))}>{t("Salvar e cadastrar outro")}</button>}
         {value && Number(value.ativo) === 1 && (
           <button type="button" className="danger" disabled={busy} onClick={() => {
-            if (confirm(t("Revogar todo o acesso deste cartão? O UID e o histórico serão preservados. As trancas aplicam a alteração ao sincronizar.")))
-              save("revogar_cartao", { id: value.id }).then(close).catch(() => {});
+            askConfirmation(t("Revogar todo o acesso deste cartão? O UID e o histórico serão preservados. As trancas aplicam a alteração ao sincronizar."), () =>
+              save("revogar_cartao", { id: value.id }).then(close).catch(() => {}));
           }}>{t("Revogar acesso")}</button>
         )}
         {value && (
@@ -1807,12 +1819,8 @@ function Card({ value, data, save, report, close }) {
             type="button"
             className="danger"
             onClick={() => {
-              if (
-                confirm(t("Desvincular este cartão? O histórico será preservado."))
-              )
-                save("resetar_cartao", { id: value.id })
-                  .then(close)
-                  .catch(() => {});
+              askConfirmation(t("Desvincular este cartão? O histórico será preservado."), () =>
+                save("resetar_cartao", { id: value.id }).then(close).catch(() => {}));
             }}
           >
             {t("Desvincular cartão")}

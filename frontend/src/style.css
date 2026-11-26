@@ -1018,3 +1018,5 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+.confirmation-overlay { z-index: 20; }

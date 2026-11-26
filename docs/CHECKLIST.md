@@ -1,6 +1,7 @@
 # Checklist Clack — 07/10/2026
 
 ## Preparação do artigo do TCC II
+- [x] Padronizar confirmações de comandos de sala, cartões e bloqueio de operadores com a janela do painel. Cancelamento e revogação verificados com API simulada; validação no servidor real pendente.
 - [x] Implementar restauração do servo da tranca de sala ao reiniciar, com estado local e proteção contra reinício durante movimento.
 - [ ] Validar fisicamente a retomada após corte de energia, com servo calibrado e mecanismo livre, incluindo estados aberto, fechado, manutenção e movimento interrompido.
 - [x] Apresentar eventos da portaria no histórico com nomes legíveis e identificar o responsável como Portaria quando não houver pessoa associada.
